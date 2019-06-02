@@ -1,0 +1,144 @@
+---
+title: 'EDF 6938 Lecture 7: Binary Prediction Methods (II)'
+author: "A.C. Thomas -- FSSS"
+date: "10/11/2015"
+output: html_document
+---
+
+One of the biggest reasons for the large presence of computer science's foray into "machine learning" -- what statisticians would have just called "statistics" for decades -- is the field's success in answering questions of prediction, particularly with to binary outcomes.
+
+Last week we covered the most straightforward "statistical learning" method for prediction. This week we'll discuss some methods that came from machine learning.
+
+list of methods: 
+- CART (with rpart)
+
+## 1. Decision Trees and Flow Charts As Models
+
+The simplest way we have to make a decision is to consider one factor at a time in sequence. We optimize a choice based on factors that have an order of importance.
+
+Tree-based models take that principle and use it to divide up the data into a (somewhat) interpretable model. One package for this:
+
+```{r, eval=FALSE}
+install.packages("party")
+```
+
+Let's bust it out and see how it works.
+
+```{r}
+library(party)
+library(dplyr)
+titanic <- read.table ("http://www.acthomas.ca/FSSS/data/titanic.txt", header=TRUE) %>% 
+  mutate (Class = as.factor(c("Crew","First","Second","Third")[Class + 1]))
+tree.one <- ctree(as.factor(Survived) ~ ., data=titanic)
+tree.one
+plot(tree.one)
+```
+
+Extract the relevant predictions:
+
+```{r}
+unique.set <- titanic %>% dplyr::select (-Survived) %>% distinct
+cbind (unique.set, prediction=Predict(tree.one, unique.set))
+```
+
+Works better as linear, for the sake of this model:
+
+```{r}
+tree.two <- ctree(Survived ~ ., data=titanic)
+tree.two
+plot(tree.two)
+cbind (unique.set, prediction=Predict(tree.two, unique.set))
+```
+
+
+This works for continuous data as well:
+
+```{r}
+print(load("wine-tests.RData"))
+head(red)
+red.tree <- ctree (quality ~ ., data=red)
+plot(red.tree)
+red2 <- red %>% mutate (quality = jitter(quality))
+red.tree.alc <- ctree (quality ~ alcohol, data=red2)
+plot(red.tree.alc)
+```
+
+This is unwieldy to show, so I'm exporting it to a PDF for easier viewing.
+
+```{r}
+pdf("red-plot.pdf", height=28, width=28)
+plot(red.tree)
+dev.off()
+```
+
+```{r}
+white.tree <- ctree (quality ~ ., data=white)
+pdf("white-plot.pdf", height=48, width=48)
+plot(white.tree)
+dev.off()
+```
+
+Lots of variables! Lots of choices. This partitioning is being done by a simple method that searches for statistically significant differences in-sample.
+
+```{r}
+radon <- read.table ("http://www.acthomas.ca/FSSS/data/mn-radon.txt", header=TRUE) %>% mutate (badradon = 1*(radon >= 5))
+
+radon.tree <- ctree (log.radon ~ as.factor(county) + floor + log.uranium, data=radon)
+radon.tree
+plot (radon.tree)
+```
+
+Not always the most revealing splits, not always the biggest bit of information. Let's do another categorical one:
+
+```{r}
+library(MASS)
+car.tree <- ctree (DriveTrain ~ ., data=Cars93)
+plot(car.tree)
+```
+
+Lots of variables -- minimal depth. What's driving this? Some rule based on the number of rows to avoid overfitting? (Yes.) Bonferroni correction? (Yes.) Out-of-sample validity? (No!)
+
+## Cross-Validation with Trees
+
+Another package has a built-in way of doing this; let's try it instead.
+
+```{r, eval=FALSE}
+install.packages("tree")
+```
+
+```{r}
+library("tree")
+red.tree.2 <- tree (quality ~ ., data=red)
+plot (red.tree.2)
+text (red.tree.2)
+
+cv.red <- cv.tree(red.tree.2)
+```
+
+It's ugly and I don't like that. But it does work.
+
+```{r}
+plot (red$quality, predict(red.tree.2))
+```
+
+Sort of. Different trees!
+
+```{r}
+plot (red$quality, predict(red.tree))
+```
+
+Let's do some pruning.
+
+```{r}
+white.tree.2 <- tree (quality ~ ., data=white)
+plot (white.tree.2)
+text (white.tree.2)
+
+## Compare to...
+plot(white.tree)
+```
+
+
+
+
+

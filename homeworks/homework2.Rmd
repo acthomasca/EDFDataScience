@@ -1,0 +1,44 @@
+---
+title: "Homework 1 -- Due Monday September 21, 2015"
+author: "EDF 6938"
+date: "09/03/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+This homework will continue using `dplyr` and the operations to join related data frames together. We will use the `GSS-extract-2.RData` data set from class on September 14.
+
+Recall the in-class exercise from Monday the 14th wherein we made smaller data frames based on two factor variables, first by making a long table. Let's make a few more.
+
+## Part I
+
+1. Construct a long data frame wherein you find the mean hours of TV watched and radio listened to for each subgroup of marital status and education achieved, only with respondents after 1980 who are under 50 years of age. Join this to the original data frame.
+
+2. Create a scatterplot using the `plot` function of TV hours watched (y) versus income (x) for all individuals. Add arguments `main`, `xlab` and `ylab` for a title and axis labels. 
+
+3. Use the function `points`, which takes the same first two arguments as `plot` to add points to this scatterplot corresponding to the group mean for TV hours watched (y) versus individual income (x). Add the option `col="red"` to this command so that the "group mean" points are clearly visible.
+
+
+4. Construct a long data frame wherein you find the mean hours of TV watched and radio listened to for each subgroup of opinion of marijuana legalization and education achieved, only with respondents who make less than $50,000. Join this to the original data frame.
+
+5. Create a scatterplot using the `plot` function of TV hours watched (y) versus income (x) for all individuals. Add arguments `main`, `xlab` and `ylab` for a title and axis labels. 
+
+6. Use the function `points`, which takes the same first two arguments as `plot` to add points to this scatterplot corresponding to the group mean for TV hours watched (y) versus individual income (x). Add the option `col="red"` to this command so that the "group mean" points are clearly visible.
+
+## Part II
+
+We have class records for several different groups of people. There is an overlap among the rosters of the three classes and we wish to compose a complete grade sheet for all students. You will need to load the file `hw2students.RData` into your workspace as part of your script.
+
+7. Join the three tables together into one. Which `join` function will you need to use to include all student names across all three tables?
+
+8. Determine the mean grade achieved for all students in the classes they take. You will need to use `group_by`, `mutate` and `mean` while using a function to remove the missing values for each row. Add this to the data frame
+
+9. Determine the number of classes taken by each student and add this to the data frame. Find the top-achieving student in each group: those who took all 9 classes, only 6, and only 3.
+
+
+

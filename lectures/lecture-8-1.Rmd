@@ -1,0 +1,379 @@
+---
+title: 'EDF 6938 Lecture 8: Basic Text Processing'
+author: "A.C. Thomas -- FSSS"
+date: "10/18/2015"
+output: html_document
+---
+
+Until now we've gone in the forward direction from data frames onward: how we can work analyses given the data structure with some modest level of processing. Today we start to look backwards to assemble data sets from unstructured sources.
+
+## Text Search Functions (In R)
+
+These functions appear in **many** other languages, but their R counterparts are really useful to learn. First, we assume that everything we're working with is a string/character vector.
+
+Here's one. Let's do a little work on it! [http://shakespeare.mit.edu/hamlet/full.html]
+
+```{r}
+hamlet <- readLines ("http://www.acthomas.ca/FSSS/data/hamlet-raw.txt")
+hamlet[1:20]
+```
+
+OK. Here's what I want:
+
+- Make this into a two-column matrix. Column 1: who's speaking the line. 2: The line.
+- Process out the junk.
+- Get ready to analyze text as spoken by each character.
+
+## Exploratory Work
+
+Let's introduce our first function: `grep`, which searches for patterns in text.
+
+First, let's look for precise matches. This gives us the location of matches for the search string in the text.
+
+```{r}
+grep ("Hamlet", hamlet)
+hamlet[grep ("Polonius", hamlet)]
+```
+
+Lots of them here. Where do they appear in the text?
+
+```{r}
+grep ("Hamlet", hamlet, value=TRUE)
+```
+
+Different than:
+
+```{r}
+grep ("HAMLET", hamlet, value=TRUE)[1:20]
+```
+
+Case sensitivity is important!
+
+Some more searching:
+
+```{r}
+grep ("nunnery", hamlet)
+grep ("nunnery", hamlet, value=TRUE)
+grep ("sword", hamlet, value=TRUE)
+grep ("sword|nunnery", hamlet, value=TRUE)
+intersect (grep ("Swear", hamlet), grep ("sword", hamlet))
+which (grepl ("nunnery", hamlet) & grepl (" to ", hamlet))
+
+```
+
+The task I want to accomplish: **Count the number of four-letter words used by each character in the play.**
+
+We need to screen out those lines with all capitals -- they're the guide to who's speaking. But also useful! First we need a system for handling these kinds of matches.
+
+## Regular Expressions
+
+Enter [regular expressions](https://xkcd.com/208/) (or `regex`) -- syntax for generalizing strings of characters with wild cards.  
+
+```{r}
+test.string <- "Florida Gators"
+grep("Florida", test.string)
+grep("Floridian", test.string)
+```
+
+`grep` covers a search term for  a particular string. We're also going to bring in `gregexpr`, which *retrieves* specific matches for regular expressions, and `gsub`, which replaces any matches we see with another string.
+
+```{r}
+gsub("Gator", "Seminole", test.string)
+test.string.2 <- "There ain't no Gator like a Florida Gator"
+gsub("Gator", "Seminole", test.string.2)
+```
+
+`gsub()` is exceptionally useful for practicing regular expression matching, because it's immediately evident in single strings what happened and where. So we'll practice with this for now.
+
+## Quantifiers in Regular Expressions
+
+How often?
+- `+` after a regexp means "1 or more times"
+- `*` means "0 or more times"
+- `?` means "0 or 1 times" (optional, once)
+- `{n}` means "exactly n times"
+- `{n,}` means "n or more times"
+- `{n,m}` means "between n and m times (inclusive)"  
+
+More general terms: the `[]` brackets let you specify a range of characters for a single character replacement:
+
+```{r}
+test.string
+gsub("[rstuv]", "x", test.string)
+gsub("[r-v]", "x", test.string)
+test.string.2
+gsub("[aeiou]", "y", test.string.2)
+
+gsub("a", "found", "Aaaaaaaaaah")
+gsub("g*", "found", "Aaaaaaaaaah")
+gsub("a*", "found", "Aaaaaaaaaah")
+gsub("a+", "found", "Aaaaaaaaaah")
+gsub("a+?", "found", "Aaaaaaaaaah")
+gsub("a{4}", "found", "Aaaaaaaaaah")
+gsub("[A-z]{4}", "!", "Aaaaaaaaaah")
+```
+
+How about a capitalized word? What do the `*`, `+`, and `?` operators do?
+
+```{r}
+test.string.3 <- "There ain't no Gator like A Florida Gator"
+gsub("[A-Z][a-z]*", "CapitalizedWord", test.string.3)
+gsub("[A-Z][a-z]+", "CapitalizedWord", test.string.3)
+gsub("[A-Z][a-z]+ [A-Z][a-z]+", "TwoCapWords", test.string.3)
+gsub("[A-Z][a-z]* [A-Z][a-z]*", "TwoCapWords", test.string.3)
+gsub("[A-Z][a-z]*? [A-Z][a-z]*?", "TwoCapWords", test.string.3)
+```
+
+
+## Another Data Source: Event Logs with Names Attached
+
+```{r}
+loadatbats <- load (url("http://www.acthomas.ca/FSSS/data/mlb2012atbats.RData"))
+loadatbats
+shortevents <- descriptions[1:100]
+events1000 <- descriptions[1:1000]
+```
+
+Here's the challenge: Find all the names at the beginning of these statements to put together a full roster of players. Two more special terms:
+
+- `^` means "match the beginning of the string"
+- `$` means "match the end of the string"
+
+We also want to extract the relevant part of the string. We can do this with `gsub()` (and I often do) but an easier way to do it is with `gregexpr()`. Let's test it out.
+
+```{r}
+test.string.3
+capmatches <- gregexpr("[A-Z][a-z]*", test.string.3) ## "CapitalizedWord"
+```
+
+Well, that was ... helpful ... what now?
+
+```{r}
+regmatches (test.string.3, capmatches)
+```
+
+So let's do that now. We're going to need a little R-fu to make it work completely, but not too much.
+
+We need an indicator for "name at the beginning of a string". How about
+
+```{r}
+namematch <- grep ("^[A-Z][a-z]+ [A-Z][a-z]", shortevents)
+length(namematch)
+```
+
+Two missing. We can get them quickly:
+
+```{r}
+nonamematch <- grep ("^[A-Z][a-z]+ [A-Z][a-z]", shortevents, invert=TRUE, value=TRUE)
+nonamematch
+```
+
+So let's modify it accordingly. How about all capitalized bits? We need to add special characters too.
+
+```{r}
+namematch <- grep ("^([A-Z][a-z'\\.])+", shortevents)
+length(namematch)
+```
+
+Let's check it:
+
+```{r}
+capmatches <- gregexpr("^([A-Z][a-z'\\.])+", shortevents) 
+regmatches (shortevents, capmatches)
+```
+
+Whoops. Let's fix it:
+
+```{r}
+capmatches <- gregexpr("^([A-Z]+[a-z'\\.]+)", shortevents) 
+regmatches (shortevents, capmatches)
+```
+
+Add a space:
+
+```{r}
+capmatches <- gregexpr("^([A-Z]+[a-z'\\.]+ )+", shortevents) 
+regmatches (shortevents, capmatches)
+```
+
+Wait... 
+
+```{r}
+shortevents[84]
+regmatches (shortevents, capmatches)[[84]]
+```
+
+Add multiple possible spaces:
+
+```{r}
+capmatches <- gregexpr("^([A-Z]+[a-z'\\.]+ +)+", shortevents) 
+regmatches (shortevents, capmatches)
+regmatches (shortevents, capmatches)[[84]]
+```
+
+OK! Now let's go big.
+
+```{r}
+namematch <- grep ("^([A-Z]+[a-z'\\.]+ +)+", events1000)
+length(namematch)
+nonamematch <- grep ("^([A-Z]+[a-z'\\.]+ +)+", events1000, invert=TRUE, value=TRUE)
+nonamematch
+```
+
+In case you couldn't tell -- this can take some time. But you might even find it fun. (I find it satisfying, like golf.)
+
+(sigh) Hyphens and Camel-Case names:
+
+```{r}
+namematch <- grep ("^([A-Z][A-z'\\.-]+ +)+", events1000)
+length(namematch)
+nonamematch <- grep ("^([A-Z][A-z'\\.-]+ +)+", events1000, invert=TRUE, value=TRUE)
+nonamematch
+capmatches <- gregexpr("^([A-Z][A-z'\\.-]+ +)+", events1000) 
+unlist (regmatches (events1000, capmatches))[101:200]
+```
+
+There's one more that I spotted on the manual check:
+
+```{r}
+regmatches (events1000, capmatches)[[492]]
+events1000[492]
+```
+
+We can take care of this one either by removing all the "With" statements and starting again, or just removing "With" from our fits. 
+
+```{r}
+outcomes <- unlist (regmatches (events1000, capmatches))
+outcomes[491:500]
+gsub ("With ", "", outcomes[491:500])
+```
+
+Finishing touches.
+
+```{r}
+library(dplyr)
+gsub ("With ", "", outcomes[491:500]) %>% gsub (" $", "", .)
+```
+
+## So, Back to the Bard
+
+Let's have a look at that opening again. 
+
+```{r}
+hamlet[1:50]
+```
+
+Let's tag those lines that represent speakers. A couple of ways we can do it:
+
+```{r}
+speakerlines <- grep ("^[A-Z ]+$", hamlet[1:100], value=TRUE)
+speakerlines
+speakerlines.2 <- grep ("[a-z]", hamlet[1:100], invert=TRUE, value=TRUE)
+speakerlines.2 ## not quite.
+```
+
+Still, we're learning something.
+
+```{r}
+hamlet <- hamlet[hamlet != ""]
+hamlet <- grep("^(ACT |SCENE )", hamlet, invert=TRUE, value=TRUE)
+```
+
+Now: we want to identify the speakers.
+
+```{r}
+full.hamlet <- data.frame (speaker = "",
+                           text = hamlet,
+                           stringsAsFactors=FALSE)
+speakerlines <- grepl ("^[A-Z ]+$", full.hamlet$text)
+full.hamlet$speaker[speakerlines] <- full.hamlet$text[speakerlines]
+  
+head(full.hamlet, 20)
+```
+
+A little work here: if speaker is a blank, make it the speaker from the line before.
+
+```{r}
+for (thisrow in 2:nrow(full.hamlet)) full.hamlet$speaker[thisrow] <- if (full.hamlet$speaker[thisrow] == "") full.hamlet$speaker[thisrow-1] else full.hamlet$speaker[thisrow] 
+head(full.hamlet, 20)
+full.hamlet <- filter (full.hamlet, speaker != text)
+head(full.hamlet, 20)
+```
+
+Spotted a couple more things:
+
+```{r}
+grep("^Enter ", full.hamlet$text, value=TRUE)
+grep("^Exit ", full.hamlet$text, value=TRUE)
+grep("^Exeunt ", full.hamlet$text, value=TRUE)
+full.hamlet <- filter(full.hamlet, !grepl("^Enter ", text)) %>% filter (speaker != "", !grepl("^Exit ", text), !grepl("^Exeunt ", text))
+head(full.hamlet, 20)
+```
+
+Let's get a reckoning now. How many lines does each person have?
+
+```{r}
+group_by (full.hamlet, speaker) %>% summarize (lines = n()) %>% arrange(desc(lines))
+```
+
+How many words does each person have? Let's count the spaces.
+
+```{r}
+full.hamlet <- mutate(full.hamlet,
+                      spaces = sapply(regmatches(full.hamlet$text,gregexpr (" +", full.hamlet$text)), length) + 1)
+head(full.hamlet)
+group_by (full.hamlet, speaker) %>% summarize (lines = n(), words = sum(spaces)) %>% arrange(desc(words))
+```
+
+How many four letter words does each person have? We need an expression! We also need a "not" indicator, which is not at all confusing because it's the same symbol for "beginning"
+
+```{r}
+## pad it.
+full.hamlet <- mutate (full.hamlet, text = paste0(" ",text," "))
+test.set <- full.hamlet$text[1:20]
+fourletterwords <- "[^A-z][A-z]{4}[^A-z]"
+regmatches(test.set, gregexpr (fourletterwords, test.set))
+full.hamlet <- mutate(full.hamlet,
+                      fours = sapply(regmatches(full.hamlet$text,
+                        gregexpr (fourletterwords, full.hamlet$text)), length))
+head(full.hamlet)
+```
+
+Not quite! What went wrong?
+
+```{r}
+regmatches(test.set, gregexpr (fourletterwords, test.set))[[6]]
+```
+
+The first space got used in the first match, and not for the second.
+
+```{r}
+full.hamlet <- mutate (full.hamlet, mtext = gsub(" +","  ",text))
+full.hamlet <- mutate(full.hamlet,
+                      fours = sapply(regmatches(full.hamlet$mtext,
+                        gregexpr (fourletterwords, full.hamlet$mtext)), length))
+full.hamlet %>% select (-mtext) %>% head
+```
+
+```{r}
+group_by (full.hamlet, speaker) %>% summarize (lines = n(), words = sum(spaces), fours = sum(fours)) %>% arrange(desc(fours)) %>% mutate (len = words/lines)
+```
+
+
+## In-Class Assignment
+
+1. In how many lines does the word "die" appear in the text of Hamlet? 
+
+2. In how many lines does a contraction with an apostrophe appear in the text of Hamlet?
+
+3. How many times does a batter in baseball in 2012 strike out swinging? Strike out looking?
+
+4. In what fraction of baseball events does a run score?
+
+5. Find the number of contractions with apostrophes used by each character in Hamlet. What regular expression would you devise for this?
+
+
+
+
+
+

@@ -1,0 +1,62 @@
+---
+title: "Homework 7 -- Due Monday November 2, 2015"
+author: "EDF 6938"
+date: "10/26/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+In our last homework we covered the use of regular expressions and the extraction of particular sub-sequences. In this assignment we will practice the use of the "look ahead" and "look-behind" operators, which return search matches but do not extract any characters.
+
+1. Once again, let's take the Gettysburg Address:
+
+```{r}
+gettysburg <- "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth."
+```
+
+a) First, let's practice look-aheads. Construct a match for the word "men", which occurs twice, but only when it is not followed by a comma. Confirm that the position in the text obtained by "gregexpr" is correct. Recall that we need the option `perl=TRUE` for this to work.
+
+b) Now, let's get the two word clauses that begin with the word "a" -- "a banana", "a peach" -- but only extract the second word. Use a look-behind to capture this pattern.
+
+c) Last time we asked you to extract all nine-letter words with only specific matching patterns. This time we want all six-letter words. Use a look-behind, a pattern to match, and a look-ahead to do this. Confirm that your match has been achieved.
+
+
+## Question 2
+
+The best selling music albums in history are listed here: [http://mentalfloss.com/article/62536/20-best-selling-albums-history]
+
+The relevant text has been extracted and saved to `http://www.acthomas.ca/FSSS/data/20bestalbums.txt`. An extraction is available here for Led Zeppelin's third-best-selling album of all time:
+
+```
+<p>*</p>
+<h4>3. Led Zeppelin - Led Zeppelin IV // 23 million</h4>
+</p>
+<div id="file-189923" class="file file-image file-image-jpeg">
+<div class="content">
+    <img src="http://images.mentalfloss.com/sites/default/files/styles/insert_main_wide_image/public/61qte9kingl.jpg" width="500" height="497" alt="" title="" /></div>
+</div>
+<p><a href="http://www.amazon.com/gp/product/B00M30SPMU/ref=as_li_tl?ie=UTF8&amp;camp=1789&amp;creative=9325&amp;creativeASIN=B00M30SPMU&amp;linkCode=as2&amp;tag=mentalfloss0a-20&amp;linkId=PZSPXPZVTN3ZLUC3">Buy on Amazon</a></p>
+<p>*</p>
+```
+
+a) Use `readLines` as in the last assignment to retrieve the sample. How many lines are in the file? How many best-selling albums were in this list of "20"?
+
+b) We'll do this in two steps. Find a common string that only occurs in the lines with the band, album and number sold. Use `grep` with `value=TRUE` to extract only those lines with the relevant information. Display them.
+
+c) Next, extract the name of the artists using `gregexpr()` and `regmatches()`. What text comes before? What text comes after? You can (and should) use look-aheads and look-behinds to extract only the name of the artist.
+
+d) Next, extract the name of the album. What comes before? What comes after? 
+
+e) Finally, extract the number of albums sold. 
+
+f) Repeat the previous three steps, but this time, apply your search operations to the full file and not the reduced version, extracting each piece in one pass. Do your previous search terms still work as they did before? What if any changes do you need to make to extract the relevant parts?
+

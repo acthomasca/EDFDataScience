@@ -1,0 +1,123 @@
+---
+title: "Data Science in Education Research -- Lecture 1, Hour 1"
+author: "A.C. Thomas -- FSSS"
+date: "08/23/2015"
+output: ioslides_presentation
+---
+
+## Today
+
+- What Is Data Science? (Hoo, boy)
+- Our Goals in This Class
+- General Research Objectives For All
+- Personal Motivations
+
+## What Is Data Science?
+
+A buzzword with a history! -- http://www.forbes.com/sites/gilpress/2013/05/28/a-very-short-history-of-data-science/ 
+
+- An alternate name for "computer science" (1960)
+- An alternate name for the discipline of "statistics" (1962)
+- Integrating all of these terms into a central strategy (2002) -- www.stat.purdue.edu/~wsc/papers/datascience.pdf
+- Renaming the process of industrial data manipulation (2008) -- https://hbr.org/2012/10/data-scientist-the-sexiest-job-of-the-21st-century/
+- "Data Science is the extraction of knowledge from large volumes of data that are structured or unstructured", says a compute scientist who edited the Wikipedia page
+
+
+## How Industry Uses The Term
+
+Emphasis on "Big Data" Is Common:
+
+- Storage and processing of large online data streams
+- Reduction and queries on vast amounts of data to produce simpler data objects (see: Hadoop/MapReduce) 
+- Often, simple statistical tests ("A/B" tests) are sufficient, by construction
+- Key importance: people in this role are builders, not just analysts
+- Prediction is often the focus
+
+
+## Why and How I Use The Term
+
+I like several things about the term, so long as we get to define it:
+
+- It's a better name than, and doesn't necessarily require, "statistics" - even if the original "data science" is "statistics"
+- It codifies and brings legitimacy to all the necessary skills of doing quantitative research that were previously left untaught
+- It refers to the **process**
+
+
+## The Data Science Process Is Universal
+
+- 0: Identify the question you want to answer
+- 1: Identify the data relevant to the task and get it
+- 2: Process the data into a usable form ("janitor work", "munging", "wrangling") -- here, the final object is a "tidy" data frame
+- 3: (where your analysis typically starts) Exploratory analysis through summary statistics, graphics, simple regression models, etc.
+- 4: "Heavier Analysis": model selection, prediction, cross-validation, final purpose.
+- 5: Document Production: Graphical and Table Output, Text Writing
+
+## Put the Science in Data Science
+
+Practice all the skills that make for good scientific research:
+
+- Replication and reproducibility of previous work
+- Built-in Documentation
+- Principles of openness and sharing
+- Collaborative Work (with a reminder that your best collaborator is "you, two months from now")
+
+
+## Resources
+
+For this class, we will have two basic tools, from which we can access everything else we want
+
+R project
+- http://www.r-project.org/
+
+RStudio, Hadley Wickham and the "Hadleyverse"
+- http://www.rstudio.com/
+
+
+## Resources
+
+"Doing Data Science" -- Rachel Schutt and Cathy O'Neil
+http://shop.oreilly.com/product/0636920028529.do
+http://cdn.oreillystatic.com/oreilly/booksamplers/9781449358655_sampler.pdf
+
+## Resources
+
+Johns Hopkins Data Science Specialization
+https://www.coursera.org/specialization/jhudatascience/1
+
+Roger Peng -- "R Programming for Data Science"
+https://leanpub.com/rprogramming
+
+Jeff Leek -- "The Elements of Data Analytic Style"
+https://leanpub.com/datastyle
+
+## Resources
+
+Data Science at UBC (Prof. Jennifer Bryan)
+https://stat545-ubc.github.io/
+
+## Resources
+
+Data Science at UF Twitter Account -- @DSatUF
+
+## "Full Stack Social Scientist"
+
+"Stack": the collection of software, programs and tools required to run an entire computing operation
+
+In industry, a "full stack programmer" knows about many different tools -- everything on the stack -- but is not necessarily an expert in all of them.
+
+Course objective: by the end of the semester, you will have an appreciation for every part of the computational social science "stack" in modern research, even though you will not be expected to be an expert.
+
+## A Taste of Skills
+
+What are we going to cover in this class? We're going to start from the middle -- tidy data frames -- and work outward.
+
+- Exploratory analysis: tables and graphs in R using ggplot2 and ggvis.
+- Data manipulation with dplyr and tidyr.
+- Importing databases from SQL.
+- Creating data from scratch with basic survey tools like Google Forms.
+- Binary prediction tools/basic machine learning.
+- Document/code sharing and revision control 
+
+
+
+

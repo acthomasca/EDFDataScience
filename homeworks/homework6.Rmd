@@ -1,0 +1,103 @@
+---
+title: "Homework 6 -- Due Monday October 26, 2015"
+author: "EDF 6938"
+date: "10/19/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+## Question 1
+
+1. This is the entirety of the Gettysburg Address. It is loaded here as a single string.
+
+```{r}
+gettysburg <- "Four score and seven years ago our fathers brought forth on this continent, a new nation, conceived in Liberty, and dedicated to the proposition that all men are created equal.
+
+Now we are engaged in a great civil war, testing whether that nation, or any nation so conceived and so dedicated, can long endure. We are met on a great battle-field of that war. We have come to dedicate a portion of that field, as a final resting place for those who here gave their lives that that nation might live. It is altogether fitting and proper that we should do this.
+
+But, in a larger sense, we can not dedicate -- we can not consecrate -- we can not hallow -- this ground. The brave men, living and dead, who struggled here, have consecrated it, far above our poor power to add or detract. The world will little note, nor long remember what we say here, but it can never forget what they did here. It is for us the living, rather, to be dedicated here to the unfinished work which they who fought here have thus far so nobly advanced. It is rather for us to be here dedicated to the great task remaining before us -- that from these honored dead we take increased devotion to that cause for which they gave the last full measure of devotion -- that we here highly resolve that these dead shall not have died in vain -- that this nation, under God, shall have a new birth of freedom -- and that government of the people, by the people, for the people, shall not perish from the earth."
+```
+
+Use `gregexpr()` and `regmatches()` to extract:
+
+a) All capitalized words that are not at the beginning of sentences.
+
+b) All nine-letter words.
+
+c) The number of times the word "nation" appears.
+
+d) The number of sentences. Do this by find the number of periods -- remember that "\." would be the ordinary regex but "\\." is needed in R.
+
+e) The number of paragraphs in the phrase. (Yes, you can count it yourself, here, but that's not the point.) Print out the string as displayed and use this to find the new paragraph indicator.
+
+## Question 2
+
+2. The entirety of the Emancipation Proclamation can be found here:
+
+```{r}
+emancipation <- readLines ("http://www.acthomas.ca/FSSS/data/emancipation.txt")
+```
+
+a) How many lines of text are in this file? How many of those are blank?
+
+Use `gregexpr()` and `regmatches()` to extract:
+
+b) All capitalized words that are not at the beginning of sentences.
+
+c) All fully capitalized names.
+
+d) All nine-letter words.
+
+e) All Saints mentioned by name ("St." with their name). Note that, as before, `.` is a special character, so you will need `\\.` to identify it.
+
+## Question 3
+
+3. The Top 100 grossing movies, unadjusted for inflation, are located here: [http://www.boxofficemojo.com/alltime/world/]
+
+We will use our skills to extract the list of movies, the year of their release, and the amount of money they brought in worldwide.
+
+Here is an extraction of the HTML code for the second-highest grossing movie:
+
+```
+<tr bgcolor="#f4f4ff"><td align="center"><font size="2">2</font></td>
+<td><font size="2"><a href="/movies/?id=titanic.htm"><b>Titanic</b></a></font></td>
+<td><font size="2">Par.</font></td>
+<td align="right"><font size="2"><b>$2,186.8</b></font></td>
+<td align="right"><font size="2">$658.7</font></td>
+<td align="right"><font size="2">30.1%</font></td>
+<td align="right"><font size="2">$1,528.1</font></td>
+<td align="right"><font size="2">69.9%</font></td>
+<td align="center"><font size="2">1997^</font></td>
+</tr>
+```
+
+a) Load the raw HTML in from the course website:
+
+```{r, eval=FALSE}
+boxoffice <- readLines ("http://www.acthomas.ca/FSSS/data/boxoffice.html")
+```
+
+How many raw lines of text are here?
+
+b) First, find the line that has the movie title in it. Select a piece of text that you believe is unique to the title lines in each case (but not specific to one movie). Note -- because the question mark `?` is a special character, you would need to use `\\?` to identify it.
+
+c) Use `grep()` to extract these lines and save them to their own vector. Are there 100 of them? If not, either pick another search term that is unique (preferred!) or manually remove the incorrect ones from the vector (not preferred, but professionally it is done).
+
+d) With this new vector of 100 lines, devise a search term that cuts down to as much of the name of the movie as possible. You may have some HTML tags left over. Check for yourself that all 100 are working properly; display the first 10.
+
+e) Remove the remaining HTML tags with `gsub()`. Check for yourself that all 100 are working properly; display the first 10.
+
+f) Now for the year. Select a piece of text that you believe is unique to the year line in each case. What happens if you just search for four numbers in a row like `[0-9]{4}`?
+
+g) Use `grep()` to get only those 100 lines with movie years in them. Then use `gregexpr()` and `regmatches()` to extract the year.
+
+h) Finally, repeat the previous two steps but for the worldwide gross, which is surrounded by "bold" tags.
+
+i) Create the final data frame with these three pieces of information. Display the top 10, the middle 10 (46-55) and the bottom 10 (91-100) on the list.
+
+

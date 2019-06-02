@@ -1,0 +1,250 @@
+---
+title: "EDF 6938 Lecture 5: Modern Regression Methods"
+author: "EDF 6938"
+date: "September 28, 2015"
+output: html_document
+---
+
+Linear models, both in the standard and generalized forms, have been a staple of analysis for decades. We'll review the existing tools in R that cover what you may have already learned, before introducing a powerful new toolkit that lets us work not only with very large data sets, but is also built for future predictive accuracy.
+
+## Linear Models in R
+
+First, let's get some data. Here's one data set that's useful:
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+london.schools <- read.table("http://www.acthomas.ca/FSSS/data/school-frame.txt")
+```
+
+What are the variables within?
+
+Y               = end-of-year exam scores for each pupil (1..1978)
+school          = school each pupil is in (1..38)
+LRT             = London reading test score -- beginning of year
+VR.1            = 1 for highest verbal-reasoning pupils, else 0  -- beginning of year
+VR.2            = 1 for medium  verbal-reasoning pupils, else 0  -- beginning of year
+Gender          : 0 = female, 1 = male (we think! This is the cardinal sin of data collection)
+School.gender.1 = 1 for all-girl schools
+School.gender.2 = 1 for all-boy schools
+School.denom.1  = 1 for Roman Catholic  schools, 0 else
+School.denom.2  = 1 for Church of England schools, 0 else
+
+Let's convert these to factors for ease of use and readability.
+
+```{r}
+london.processed = 
+  london.schools %>% mutate (
+    SchoolGender = factor(c("Co-ed", "All-Girl", "All-Boy")[1+School.gender.1+2*School.gender.2]),
+    SchoolDenom = factor(c("Other", "RC", "C-of-E")[1+School.denom.1+2*School.denom.2]),
+    VerbalScore = factor(c("Low", "Med", "High")[1+VR.2+2*VR.1])
+    ) %>% select (Y, school, LRT, VerbalScore, Gender, SchoolGender, SchoolDenom)
+head(london.processed)
+```
+
+Exploring the data a little: what kind of outcomes are we looking at?
+
+```{r}
+summary(london.processed)
+qplot (Y, data=london.processed)
+qplot (Y, LRT, data=london.processed)
+qplot (SchoolGender, Y, data=london.processed) + geom_violin()
+```
+
+
+## Linear Models, I
+
+R's basic function for this is `lm()`, or "linear model", which is the standard
+
+$$ y_i = x_i\beta + \varepsilon_i $$
+
+This uses the standard formula approach
+
+```{r}
+school.test = lm (Y ~ school - 1, data=london.processed)   ## -1: remove the intercept.
+qplot(school.test$fitted.values, school.test$fitted.values + school.test$residuals)
+summary(school.test)
+```
+
+Whoops! "School" should have been a factor.
+
+```{r}
+london.processed <- mutate (london.processed, school = as.factor(school))
+school.test = lm (Y ~ school - 1, data=london.processed)   ## -1: remove the intercept.
+qplot(school.test$fitted.values, school.test$fitted.values + school.test$residuals)
+summary(school.test)
+```
+
+A quick note on internals: What is this actually producing for us on the back end?
+
+```{r}
+names(school.test)
+```
+
+Let's expand to some more variables.
+
+```{r}
+school.test.2 = lm (Y ~ SchoolGender + SchoolDenom + VerbalScore + LRT, data=london.processed)
+summary(school.test.2)
+qplot(school.test.2$fitted.values, school.test.2$fitted.values + school.test.2$residuals, main="Observed vs Fitted Values for London Students")
+```
+
+And finally, both together:
+
+```{r}
+school.test.3 = lm (Y ~ school + SchoolGender + SchoolDenom + VerbalScore + LRT, data=london.processed)
+summary(school.test.3)
+qplot(school.test.3$fitted.values, school.test.3$fitted.values + school.test.3$residuals, main="Observed vs Fitted Values for London Students")
+```
+
+Keep these for later; we're going to use them when comparing to results from the methods that follow.
+
+
+## Example, II: Housing prices in California and Pennsylvania
+
+```{r}
+calif_penn <- read.csv("http://www.acthomas.ca/7474/data/calif_penn_2011.csv")
+head(calif_penn, 2)
+```
+
+Subset this to Pennsylvania.
+
+```{r}
+penn <- filter (calif_penn, STATEFP==42)
+qplot (Median_household_income, Median_house_value, data=penn)
+housing.model <- lm(Median_house_value ~ Median_household_income, data=penn)
+summary(housing.model)
+```
+
+More data, please. 
+
+```{r}
+penn.2 = penn %>% mutate (mean.bedrooms = (Bedrooms_1 + 2*Bedrooms_2 + 3*Bedrooms_3 + 4*Bedrooms_4 + 5*Bedrooms_5_or_more)/100)
+head(penn.2, 2)
+housing.model.2 <- lm(Median_house_value ~ mean.bedrooms, data=penn.2)
+summary(housing.model.2)
+
+housing.model.3 <- lm(Median_house_value ~ mean.bedrooms + Median_household_income, data=penn.2)
+summary(housing.model.3)
+
+```
+
+
+## Introducing Penalized Estimation 
+
+```{r, eval=FALSE}
+install.packages("glmnet")
+```
+
+The `glmnet` package covers a very general form of regression solution that is also very powerful: the "elastic net" family of penalized estimation.
+
+(diversion: to the blackboard!)
+
+It has two prime features for our sake: 
+
+- it can be used to greatly speed up calculations for standard but large linear models
+- it has a built-in tool for cross validation to check the out-of-sample goodness of fit for a model class.
+
+There is, of course, one major drawback: we need to work a little harder to make it work properly. But the benefits will most often outweight the drawbacks.
+
+```{r}
+library(glmnet)
+```
+
+```{r, eval=FALSE}
+school.test.net = glmnet (london.processed$school, london.processed$Y)
+```
+
+Won't work because you have to do the factor decomposition yourself. So let's do it!
+
+```{r}
+design.matrix <- model.matrix(~ 0 + school, london.processed)
+head(design.matrix)
+
+school.test.net = glmnet (design.matrix, 
+                          london.processed$Y)
+school.test.net
+names(school.test.net)
+```
+
+```{r}
+plot(school.test.net)
+school.test.net$beta
+```
+
+Compare to the earlier one.
+
+```{r}
+qplot (school.test$coefficients, school.test.net$beta[,5])
+qplot (school.test$coefficients, school.test.net$beta[,25])
+qplot (school.test$coefficients, school.test.net$beta[,ncol(school.test.net$beta)])
+```
+
+Well, that's all well and good. But `alpha=1` sets up the pure "LASSO" form. What about the "ridge" form?
+
+
+```{r}
+school.test.net.2 = glmnet (design.matrix, 
+                          london.processed$Y,
+                          alpha=0)
+school.test.net.2
+names(school.test.net.2)
+plot(school.test.net.2)
+```
+
+But which one do we want to keep?
+
+## Cross-validation To The Rescue!
+
+Principle of cross-validation:
+
+- hold out part of the data.
+- fit the model to the initial piece.
+- check the predictive accuracy on the held-out piece.
+
+So let's!
+
+```{r}
+school.test.cv = cv.glmnet (design.matrix, london.processed$Y, lambda=school.test.net$lambda)
+plot(school.test.cv)
+picked <- which (school.test.cv$lambda == school.test.cv$lambda.min)
+cv.error <- school.test.cv$cvm[picked]
+```
+
+In general, do the selection first, then redo the check with the suggested chain.
+
+
+```{r}
+school.test.cv.2 = cv.glmnet (design.matrix, london.processed$Y, alpha=0)
+plot(school.test.cv.2)
+picked.2 <- which (school.test.cv.2$lambda == school.test.cv.2$lambda.min)
+
+cv.error.2 <- school.test.cv.2$cvm[picked.2]
+
+c(cv.error, cv.error.2)
+
+school.test.net.2 = glmnet (design.matrix, london.processed$Y, alpha=0, lambda = school.test.cv.2$lambda)
+qplot (school.test$coefficients, school.test.net.2$beta[,picked.2])
+
+
+school.test.cv.3 = cv.glmnet (design.matrix, london.processed$Y, alpha=0.5)
+plot(school.test.cv.3)
+picked.3 <- which (school.test.cv.3$lambda == school.test.cv.3$lambda.min)
+
+cv.error.3 <- school.test.cv.3$cvm[picked.3]
+
+c(cv.error, cv.error.2, cv.error.3)
+
+school.test.net.3 = glmnet (design.matrix, london.processed$Y, alpha=0.5, lambda = school.test.cv.3$lambda)
+qplot (school.test$coefficients, school.test.net.3$beta[,picked.3])
+
+```
+
+
+## Exercise
+
+Repeat the same work with glmnet and cv.glmnet with the Pennsylvania housing data set. In particular, find a data set that minimizes the cross-validated standard error for a variety of `alpha` values. Repeat this operation five times and see if the results repeat.
+
+
+

@@ -1,0 +1,36 @@
+---
+title: "testing"
+author: "A.C. Thomas -- FSSS"
+date: "10/05/2015"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+london.schools <- read.table("http://www.acthomas.ca/FSSS/data/school-frame.txt")
+
+london.processed = 
+  london.schools %>% mutate (
+    SchoolGender = factor(c("Co-ed", "All-Girl", "All-Boy")[1+School.gender.1+2*School.gender.2]),
+    SchoolDenom = factor(c("Other", "RC", "C-of-E")[1+School.denom.1+2*School.denom.2]),
+    VerbalScore = factor(c("Low", "Med", "High")[1+VR.2+2*VR.1]),
+    passed = 1*(Y >= -1)
+    ) %>% select (Y, school, LRT, VerbalScore, Gender, SchoolGender, SchoolDenom, passed)
+head(london.processed)
+
+predictors <- cbind(model.matrix (~ 0 + as.factor(school) + VerbalScore + Gender, london.processed))
+
+school.cv <- cv.glmnet (predictors, london.processed$passed, family="binomial", nfolds=20)
+plot(school.cv)
+picked.r2 <- which (school.cv$lambda == school.cv$lambda.min)
+
+school.glmnet <- glmnet (predictors, london.processed$passed, family="binomial")
+plot(school.glmnet)
+print(school.glmnet$beta[,picked.r2])
+sum(school.glmnet$beta[1:38,picked.r2] != 0)
+
+```
+

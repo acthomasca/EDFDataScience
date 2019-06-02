@@ -1,0 +1,307 @@
+---
+title: 'EDF 6938 Lecture 9: Basic Text Processing II'
+author: "A.C. Thomas -- FSSS"
+date: "10/18/2015"
+output: html_document
+---
+
+Upcoming things to watch for:
+
+- Monday November 2: Final Project information out!
+- Monday November 23: Still class today, unless I hear otherwise about Thanksgiving Week policies
+- December 7: Presentation Day (10 minutes per presenter)
+
+Today: Continuing with text processing. Last time we covered three standard functions:
+
+- `grep()`, which *searches* for a pattern;
+- `gsub()`, which *replaces* a pattern;
+- `gregexpr()`, which *extracts* a pattern match.
+
+Let's use these skills to play "Regex Golf": How many trials will it take you to find an expression that directly splits your set of strings into "desired" and "undesired" bins? Similarly, knowing that there's a match in every string, how do we extract the correct pieces?
+
+## Exercise 1
+
+```{r}
+keepers <- c("apple", "pear", "banana", "peach")
+omitters <- c("kiwi", "plum", "blueberry", "melon")
+total <- c(keepers, omitters)
+```
+
+What would be a condition that keeps only the keepers? You can get this in one.
+
+```{r}
+expr <- "a"
+grep (expr, total, value=TRUE)
+```
+
+
+## Exercise 2
+
+We can get this one in two steps at worst:
+
+```{r}
+library(dplyr)
+keepers <- c("Estonia", "Latvia", "Lithuania", "Finland", "Russia")
+omitters <- c("Britain", "Germany", "France", "Italy", "Spain")
+total <- c(keepers, omitters)
+
+total %>% 
+  grep ("i", ., value=TRUE) %>% 
+    grep ("[BS]", ., value=TRUE, invert=TRUE)
+
+expr = "[i]"
+total[grepl (expr, total) & !grepl ("[BS]", total)]
+```
+
+Probably wouldn't work as a general rule, but this is OK for the exercise. Either:
+
+- Start with a bigger list, then pare down;
+- Start with a smaller list, then build up.
+
+## Exercise 2.5
+
+Purely for practice -- doubtful this would ever happen in a real problem:
+
+[https://regex.alf.nu/0]
+
+## Exercise 3
+
+Parsing Hamlet was a form of this exercise already:
+
+```{r}
+library(dplyr)
+hamlet <- readLines ("http://www.acthomas.ca/FSSS/data/hamlet-raw.txt")
+full.hamlet <- data.frame (speaker = "",
+                           text = hamlet,
+                           stringsAsFactors=FALSE)
+speakerlines <- grepl ("^[A-Z ]+$", full.hamlet$text)
+full.hamlet$speaker[speakerlines] <- full.hamlet$text[speakerlines]
+for (thisrow in 2:nrow(full.hamlet)) full.hamlet$speaker[thisrow] <- if (full.hamlet$speaker[thisrow] == "") full.hamlet$speaker[thisrow-1] else full.hamlet$speaker[thisrow] 
+full.hamlet <- filter (full.hamlet, speaker != text)
+full.hamlet <- filter(full.hamlet, !grepl("(^ACT |^SCENE |^Enter|^Exit|^Exeunt)", text)) %>% filter (!grepl("(^ACT |^SCENE |^Enter|^Exit|^Exeunt)", speaker))
+hamlet.names <- unique(full.hamlet$speaker)
+print(hamlet.names)
+```
+
+Now, find an expression for the speaker lines that are more than one person, and not a royal title.
+
+```{r}
+multiples <- hamlet.names %>% grep ("KING|QUEEN|PRINCE|LORD", ., value=TRUE, invert=TRUE) %>% grep ("[A-Z]", ., value=TRUE) %>% grep (" ", ., value=TRUE)
+
+filter (full.hamlet, speaker %in% multiples)
+```
+
+## From Last Time
+
+"Find the number of contractions with apostrophes used by each character in Hamlet. What regular expression would you devise for this?"
+
+Let's do this in multiple steps.
+
+```{r}
+aposts <- filter (full.hamlet, grepl("'", text))
+apost.words <- unlist (regmatches (aposts$text, gregexpr("[A-z]*'[A-z]*", aposts$text)))
+unique(apost.words)
+```
+
+What are the things we can spot here? Here's a big one: possessives (which *might be* contractions, but we'll pull them here)
+
+```{r}
+unique(grep ("'s$", apost.words, value=TRUE))
+```
+
+If this looks good?
+
+```{r}
+apost.words.2 <- grep ("'s$", apost.words, invert=TRUE, value=TRUE)
+unique(apost.words.2)
+```
+
+How about the ones with apostrophes at the start?
+
+```{r}
+starters <- grep ("^'", apost.words.2, value=TRUE)
+unique(starters)
+```
+
+A lot here to parse. Let's get rid of the obvious ones for now:
+
+```{r}
+apost.words.3 <- grep ("HAMLET|LAERTES|Laertes|Horatio|Naked",  unique(apost.words.2), invert=TRUE, value=TRUE)
+```
+
+As well as clear possessives:
+
+```{r}
+apost.words.4 <- grep ("[A-Z][a-z]+'$",  unique(apost.words.3), value=TRUE, invert=TRUE)
+```
+
+Now let's put it together:
+
+```{r}
+all.aposts <- paste ("(", paste(apost.words.4, collapse="|"), ")")
+full.hamlet <- mutate (full.hamlet,
+                      apost.words = sapply(regmatches (full.hamlet$text, gregexpr(all.aposts, full.hamlet$text)), length))
+
+group_by (full.hamlet, speaker) %>% summarize (aposts = sum(apost.words)) %>% arrange (desc(aposts))
+```
+
+
+## From Last Time, II
+
+4. In what fraction of baseball events does a run score?
+
+```{r}
+loadatbats <- load (url("http://www.acthomas.ca/FSSS/data/mlb2012atbats.RData"))
+loadatbats
+events1000 <- descriptions[1:1000]
+grep ("scores|homers|inside-the-park", events1000, value=TRUE)
+length(grep ("scores|homers|inside-the-park", descriptions))/length(descriptions)
+```
+
+Related: how many runs score per event on average?
+
+```{r}
+table (sapply (regmatches (events1000, gregexpr ("scores|homers|inside-the-park", events1000)), length))
+sum (sapply (regmatches (descriptions, gregexpr ("scores|homers|inside-the-park", descriptions)), length))/length(descriptions)
+```
+
+
+## Some more tips 
+
+Matches that "look ahead" but do not show up in the match. Another use for the `?` operator. Warning: we need to expand our library for this.
+
+Positive lookahead:
+
+```{r}
+qphrases <- c("qatar", "iraq", "kumquat", "quince", "quisenberry")
+```
+
+Match those with `qu`:
+
+```{r}
+regmatches(qphrases, gregexpr ("qu", qphrases))
+```
+
+Positive look-ahead:
+
+```{r, eval=FALSE}
+grep ("q(?=u)", qphrases)
+```
+
+We need the option `perl=TRUE` for this to work, but it's powerful.
+
+```{r}
+grep ("q(?=u)", qphrases, perl=TRUE)
+grep ("q(?=u)", qphrases, perl=TRUE, value=TRUE)
+regmatches(qphrases, gregexpr ("q(?=u)", qphrases, perl=TRUE))
+```
+
+So it returns a "zero-length" expression here. How about a negative look-ahead?
+
+```{r}
+grep ("q(?!u)", qphrases, perl=TRUE)
+grep ("q(?!u)", qphrases, perl=TRUE, value=TRUE)
+regmatches(qphrases, gregexpr ("q(?!u)", qphrases, perl=TRUE))
+
+
+grep ("q(?=t)", qphrases, perl=TRUE, value=TRUE)
+grep ("q(?!t)", qphrases, perl=TRUE, value=TRUE)
+
+```
+
+## Example: Password matching
+
+I want an expression that contains at least one number.
+
+```{r}
+passwords <- c("hello123", "hotbeans", "123456", "passwordone", "123456switch")
+grep ("(?=[0-9])", passwords, perl=TRUE)
+regmatches(passwords, gregexpr ("(?=[0-9])", passwords, perl=TRUE))
+```
+
+Looks good but we want to retrieve the expression.
+
+```{r}
+expression <- "(?=[0-9]).*"
+grep (expression, passwords, perl=TRUE)
+regmatches(passwords, gregexpr (expression, passwords, perl=TRUE))
+```
+
+One more tweak: the look ahead expression has to be flexible. In this case
+
+```{r}
+expression <- "^(?=.*[0-9]).*"
+grep (expression, passwords, perl=TRUE)
+regmatches(passwords, gregexpr (expression, passwords, perl=TRUE))
+```
+
+How about a password guideline? At least one uppercase letter, one lowercase letter, one number.
+
+```{r}
+passwords2 <- c("hello123", "hotbeans", "123456", "passwordone",
+               "Hello123", "HotBeans", "123456ABCDEF", "PassWord1",
+               "122456abcdef")
+expression <- "^(?=.*[0-9])(?=.*[A-Z])(?=.*[a-z]).*"
+grep (expression, passwords2, perl=TRUE)
+regmatches(passwords2, gregexpr (expression, passwords2, perl=TRUE))
+
+expression1 <- "(?=.*[0-9])(?=.*[a-z])."
+grep (expression1, passwords2, perl=TRUE, value=TRUE)
+regmatches(passwords2, gregexpr (expression1, passwords2, perl=TRUE))
+
+expression2 <- "(?=.*[a-z]).{1}(?=.*[0-9]).{1}"
+grep (expression2, passwords2, perl=TRUE, value=TRUE)
+regmatches(passwords2, gregexpr (expression2, passwords2, perl=TRUE))
+
+```
+
+## Today's exercises
+
+Find all quoted phrases in Hamlet that appear within one line. We can do this in steps.
+
+```{r}
+hamquotes <- filter (full.hamlet, grepl("'.*'", text))
+hamquotes2 <- filter (full.hamlet, grepl("(?<![A-z])'.*'(?![A-z])", text, perl=TRUE))
+```
+
+(Optional: Look aheads for one-liners in HW 6)
+
+Search: questions? and Name
+
+```{r}
+grep ("[A-z]+\\?", full.hamlet$text, perl=TRUE, value=TRUE)
+grep ("(?=[A-Z][a-z]+)[A-z]+\\?", full.hamlet$text, perl=TRUE, value=TRUE)
+unlist(regmatches (full.hamlet$text, gregexpr ("(?=[A-Z][a-z]+)[A-z]+\\?", full.hamlet$text, perl=TRUE)))
+unlist(regmatches (full.hamlet$text, gregexpr ("[A-Z][a-z]+\\?", full.hamlet$text, perl=TRUE)))
+unlist(regmatches (full.hamlet$text, gregexpr ("[A-z]+\\?", full.hamlet$text, perl=TRUE)))
+
+grep ("Norway", full.hamlet$text, perl=TRUE, value=TRUE)
+unlist(regmatches (full.hamlet$text, gregexpr ("Norway", full.hamlet$text, perl=TRUE)))
+unlist(regmatches (full.hamlet$text, gregexpr (".*Norway", full.hamlet$text, perl=TRUE)))
+
+unlist(regmatches (full.hamlet$text, gregexpr (".*(?=Norway)", full.hamlet$text, perl=TRUE)))
+unlist(regmatches (full.hamlet$text, gregexpr (".*(?<=Norway)", full.hamlet$text, perl=TRUE)))
+
+unlist(regmatches (full.hamlet$text, gregexpr ("(?=Norway).*", full.hamlet$text, perl=TRUE)))
+unlist(regmatches (full.hamlet$text, gregexpr ("(?<=Norway).*", full.hamlet$text, perl=TRUE)))
+
+
+grep ("Norway", full.hamlet$text, perl=TRUE, value=TRUE)
+unlist(regmatches (full.hamlet$text, gregexpr ("(?=.*Norway.*) [A-z]{6} ", full.hamlet$text, perl=TRUE)))
+
+
+boxoffice <- readLines ("http://www.acthomas.ca/FSSS/data/boxoffice.html")
+grep ("[0-9]{4}", boxoffice, value=TRUE)
+
+expr <- '(?<=td align="center"><font size="2">).*[0-9]{4}'
+expr <- '(?<!<b>)[0-9]{4}'
+
+grep (expr, boxoffice, value=TRUE, perl=TRUE)
+unlist(regmatches (boxoffice, gregexpr (expr, boxoffice, perl=TRUE)))
+
+```
+
+
+
+
+

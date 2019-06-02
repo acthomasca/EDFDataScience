@@ -1,0 +1,24 @@
+---
+title: "Lecture 2, Hour 2: Data Frames and Manipulation"
+author: "A.C. Thomas -- FSSS"
+date: "08/30/2015"
+output: html_document
+---
+
+
+1) Introduce data types and manipulation
+
+How are vectors/data frames made?
+
+-importing data frames from csv, read table, assemble directly
+
+
+2) manipulations of existing data frames.
+
+
+
+
+
+
+
+

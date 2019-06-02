@@ -1,0 +1,144 @@
+---
+title: 'EDF 6938 Lecture 9: Basic Text Processing II'
+author: "A.C. Thomas -- FSSS"
+date: "10/18/2015"
+output: html_document
+---
+
+
+```{r}
+library(twitteR)
+library(dplyr)
+
+## here are the keys I obtained. Get your own!
+source ("twitter-access-keys.R")
+
+## download.file(url="http://curl.haxx.se/ca/cacert.pem", destfile="cacert.pem") -- this was suggested if you are running a Windows machine.
+setup_twitter_oauth(consumer_key, 
+                    consumer_secret, 
+                    access_token, 
+                    access_secret)
+```
+
+OK, let's get some materials:
+
+```{r}
+r_stats <- searchTwitter("#Rstats", n=100) ##, cainfo="cacert.pem")
+length(r_stats)
+```
+
+This is a list being produced here. To access the elements of a list we use the double brackets `[[n]]`
+
+```{r}
+r_stats[[1]]
+class(r_stats[[1]])
+```
+
+OK, does this do what we need it to do?
+
+```{r}
+grep ("#rstats", r_stats)
+```
+
+Huh. Probably not. R is doing a lot of extra work here to give us some detail. 
+
+```{r}
+r_stats[[1]]$getText()
+class(r_stats[[1]]$getText())
+```
+
+Hurrah!
+
+```{r}
+alltext <- sapply (r_stats, function(rr) rr$getText())
+```
+
+Let's extract some pieces of info from this now. How about non-#rstats hashtags:
+
+```{r}
+hashtag <- "#[A-z0-9]+"
+all.hashtags <- unlist(regmatches(alltext, gregexpr (hashtag, alltext)))
+```
+
+How about this function instead, to get us everything we need:
+
+```{r}
+r_stats[[1]]$toDataFrame()
+```
+
+Much better. Let's do the same thing with a twist:
+
+```{r}
+allTweets.raw <- lapply (r_stats, function(rr) rr$toDataFrame())
+allTweets <- rbind_all (allTweets.raw)
+save (allTweets, file="extracted-tweets.RData")
+```
+
+Personal information:
+
+```{r}
+whoamI <- getUser ("DSatUF")
+whoamI$getFollowers()
+```
+
+Let's test the limits a little bit:
+
+```{r}
+## whereamI <- getUser ("UF")
+## whereamI$getFollowers()
+whereamI <- getUser ("GatorsGolf")
+golfFollow <- whereamI$getFollowers()
+```
+
+## Time-tagging
+
+```{r}
+wild <- searchTwitter('#mnwild', since="2015-10-30", until="2015-10-31", n=100)  ##
+wild.df <- rbind_all (lapply (wild, function(rr) rr$toDataFrame()))
+```
+
+## Geotagging
+
+I went to [maps.google.com] and found the location of Las Vegas, NV. Let's add this information to the search
+
+```{r}
+blackjack <- searchTwitter('#blackjack #wedding #pissed', n=100)  ##since="2015-01-01", until="2015-06-30", 
+
+blackjack <- searchTwitter('blackjack', geocode='36.178698,-115.154407,10mi', n=100)  ##since="2015-01-01", until="2015-06-30", 
+blackjack.df <- rbind_all (lapply (blackjack, function(rr) rr$toDataFrame()))
+
+hockey <- searchTwitter('hockey', geocode='36.178698,-115.154407,100mi', n=100)  ##since="2015-01-01", until="2015-06-30", 
+hockey.df <- rbind_all (lapply (hockey, function(rr) rr$toDataFrame()))
+hockey <- searchTwitter('hockey', n=100, since="2015-01-01", until="2015-06-30")
+```
+
+We should be doing better than this. First thing we'll do is ask for help.
+
+## Today's Exercise, Which Is Also Homework 8
+
+Context: Every member of the class will get a school in the Southeastern Conference (SEC). Today we'll find geo-tagged tweets associated with "your" university:
+
+[https://docs.google.com/spreadsheets/d/1IKRXc0hN1C9e5S845LmgY-rlLdCQ1xOQrI3thxKIgVA/edit?usp=sharing]
+
+1) Find the latitude and longitude of your school on Google Maps. (Click and hold on the map to return Lat/Long coordinates.)
+
+2) Extract a sample of tweets from near that location.
+
+```{r}
+tulane <- searchTwitter('', geocode='29.940692,-90.120427,1mi', n=1000)  ##since="2015-01-01", until="2015-06-30", 
+tulane.df <- rbind_all (lapply (tulane, function(rr) rr$toDataFrame()))
+```
+
+If you cannot find a sufficient number of tweets, find and use a hashtag involved in your school's sports teams and avoid the geocoding step. (#GoBlue for the University of Michigan always comes to mind for me.)
+
+3) Determine the number of hashtags used in each tweet and overall in your sample.
+
+4) Determine the number of users tagged in each tweet (like @DSatUF). Find a regular expression that will do the job; find out what characters are acceptable in Twitter handles/screennames and use this to construct one that will do the job. Confirm that all your screenName values match this regular expression.
+
+5) Collect a set of 10000 tweets for each of the last five ***Thursday-Saturday*** blocks on which a football game was played by your chosen school. Repeat the hashtag collection and user tagging exercises for each of these samples. Do the same users appear to produce the same volume each week? Do the same secondary hashtags appear?
+
+6) Determine up to 25 users who put out the most tweets over this period who are clearly not the account for the team proper or their PR department. That is, we're trying to find a fan community for your team that tweets about their team's games on a regular basis. This community of individuals will form the basis for the project looking ahead.
+
+NOTE: In each of these cases, you should draw the data you need, save it to a file, and reload it from that file. This will ensure both reproducibility and ease of use on Twitter's servers.
+
+

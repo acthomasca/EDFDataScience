@@ -1,0 +1,295 @@
+---
+title: "Lecture 3, Hour 1: Composite Data Frames"
+author: "A.C. Thomas -- FSSS"
+date: "08/30/2015"
+output: ioslides_presentation
+---
+
+## Last Time
+
+Data frames: the foundation of tidy data analysis. Operations:
+
+- Loading from CSV files, prefab RData files
+- selection of rows and columns
+- operations grouped by factors 
+
+## Today
+
+More advanced operations with data frames:
+
+- "Join" operations
+- Hierarchical data construction ("self-joins")
+
+## Basics of a Join
+
+Two data frames with common column names
+
+```{r}
+frame.one <- data.frame (name=c("Alex","Brianna","Cathy"), age = c(34, 29, 27), state = c("ID", "CO", "VT"))
+frame.one
+frame.two <- data.frame (name=c("Brianna","Cathy","Duncan"), sex = c("F","F","M"))
+frame.two
+frame.three <- data.frame (name=c("Brianna","Cathy","Duncan","Cathy","Cathy"), 
+                           age = c(29, 26, 5, 27, 27), sex = c("F","F","M","?","F"))
+frame.three
+```
+
+## Join Types
+
+```{r}
+library(dplyr)
+frame.one.a <- left_join (frame.one, frame.two)
+frame.one.a
+frame.one.b <- left_join (frame.one, frame.three)
+frame.one.b
+right_join (frame.one, frame.two)
+right_join (frame.one, frame.three)
+
+```
+
+## Join Types
+
+```{r}
+inner_join (frame.one, frame.two)
+inner_join (frame.one, frame.three)
+full_join (frame.one, frame.two)
+full_join (frame.one, frame.three)
+```
+
+## "Filter" Joins
+
+```{r}
+semi_join (frame.one, frame.two)
+semi_join (frame.two, frame.one)
+```
+
+## "Filter" Joins
+
+```{r}
+anti_join (frame.one, frame.two)
+anti_join (frame.two, frame.one)
+```
+
+## Older Methods
+
+Compare the old "merge" function:
+
+```{r}
+merge (frame.one, frame.two)
+merge (frame.one, frame.two, all.x = TRUE)
+```
+
+## Older Methods
+
+Compare the old "merge" function in base R:
+
+```{r}
+merge (frame.one, frame.two, all.y = TRUE)
+merge (frame.one, frame.two, all.x = TRUE, all.y = TRUE)
+```
+
+
+## Example from R Docs
+
+Which joins are appropriate here?
+
+```{r}
+authors <- data.frame(
+    surname = c("Tukey", "Venables", "Tierney", "Ripley", "McNeil"),
+    nationality = c("US", "Australia", "US", "UK", "Australia"),
+    deceased = c("yes", rep("no", 4)))
+books <- data.frame(
+    name = c("Tukey", "Venables", "Tierney",
+             "Ripley", "Ripley", "McNeil", "R Core"),
+    title = c("Exploratory Data Analysis",
+              "Modern Applied Statistics ...",
+              "LISP-STAT",
+              "Spatial Statistics", "Stochastic Simulation",
+              "Interactive Data Analysis",
+              "An Introduction to R"),
+    other.author = c(NA, "Ripley", NA, NA, NA, NA,
+                     "Venables & Smith"))
+```
+
+## In Base R
+
+```{r}
+m1 <- merge(authors, books, by.x = "surname", by.y = "name")
+m1
+m2 <- merge(books, authors, by.x = "name", by.y = "surname")
+m2
+```
+
+## In dplyr
+
+```{r}
+m3 <- inner_join (authors %>% rename (name = surname), 
+                  books)
+m3
+m4 <- inner_join (books, authors %>% rename (name = surname))
+m4
+```
+
+
+## Hierarchical Grouping
+
+Consider the data from Homework 1, the subset of the General Social Survey data. We'll expand it a little bit for this class and the subsequent homework.
+
+First, we'll load an augmented version of the GSS:
+
+```{r}
+load ("GSS-extract-2.RData")
+head(subGSS.2, 3)
+```
+
+Four variables added: RACMAR (favor laws against interracial marriage), PREMARSX (attitude on premarital sex), MARHOMO (homosexuals should have the right to marry), CONRINC (respondent's income in adjusted dollars)
+
+## External Construction
+
+Let's make a new group and then join it back to the original.
+
+```{r}
+grouped.income <-
+  subGSS.2 %>% group_by (year, degree) %>% summarize (income = mean(conrinc, na.rm=TRUE))
+```
+
+Examine it:
+
+```{r}
+library(tidyr)
+##grouped.income %>% spread (degree, income)
+income.table <- grouped.income %>% filter (!is.na(degree)) %>% spread (degree, income)
+```
+
+
+## External Construction
+
+```{r}
+GSS.augmented <- left_join (subGSS.2, grouped.income) %>% filter (!is.na (income))
+head(GSS.augmented)
+```
+
+
+## Could Do It In One, Here
+
+```{r}
+GSS.augmented.other <- 
+  subGSS.2 %>% group_by (year, degree) %>% mutate (income = mean(conrinc, na.rm=TRUE)) %>% filter (!is.na (income))
+GSS.augmented.other
+```
+
+
+
+## Introduction to Base R Graphics
+
+Next week we'll get into more detail about `ggplot2`, the plotting system that's also built by Hadley Wickham, and how the "grammar" of that system works here. For now, let's review the plotting options we have available in Base R.
+
+```{r}
+plot (1:20, main="A Boring Plot of Nunbers from 1 to 20")
+```
+
+
+## Introduction to Base R Graphics
+
+Basic principles of statistical graphics: Compare and Contrast different types of data.
+
+Today:
+
+- Single variable, continuous and categorical
+- Categorical vs categorical 
+- Categorical vs continuous
+
+## Introduction to Base R Graphics
+
+For exploratory purposes, it's not bad. For big heavy designs, it's not bad either.
+
+```{r}
+plot (log(conrinc) ~ year, data=GSS.augmented.other)
+plot (GSS.augmented.other$year, log(GSS.augmented.other$conrinc), main="Income of Respondents By Year", xlab="Year", ylab="log(Income)")
+```
+
+## Introduction to Base R Graphics
+
+Basic one-dimensional bar plot: 
+
+```{r}
+par(mfrow=c(2,1))
+plot (GSS.augmented$degree)
+plot (GSS.augmented$degree[GSS.augmented$year > 2000])
+```
+
+
+## One-D Numerical Data
+
+```{r}
+par(mfrow=c(1,1))
+plot (GSS.augmented$year)
+```
+
+## One-D Numerical Data
+
+Could do better. 
+
+```{r}
+hist (GSS.augmented$year, breaks=seq(1970.5, 2014.5),
+      col=1)
+```
+
+
+## Introduction to Base R Graphics
+
+Unhelpful:
+
+```{r}
+plot (GSS.augmented$year, GSS.augmented$degree)
+plot (GSS.augmented$degree, GSS.augmented$year)
+```
+
+## Introduction to Base R Graphics
+
+More helpful: Mosaic Plot for Categorical vs Categorical
+
+```{r}
+plot (as.factor(GSS.augmented$year), GSS.augmented$degree, 
+      col=c("black","red","#4536FA","pink","salmon"))
+plot (GSS.augmented$degree, as.factor(GSS.augmented$year))
+```
+
+## Categorical Versus Continuous
+
+Box plots for continuous outcomes
+
+```{r}
+plot (GSS.augmented$degree, GSS.augmented$conrinc)
+```
+
+
+## Categorical Versus Continuous
+
+Box plots for continuous outcomes
+
+```{r}
+plot (GSS.augmented$degree, log(GSS.augmented$conrinc))
+```
+
+
+## Introduction to Base R Graphics
+
+
+## Today's Exercises
+
+1. From last time: For each year in the study and degree category, filter down to a new data frame with (at most) the top 10 personal income earners in each group. Confirm the dimensions of this new data frame.
+
+2. Using this, create a new data frame that calculates the fraction of approval of marijuana legalization, the approval of gay marriage, and the approval of both together, for each year and degree group. 
+
+3. Display this in a table year over year.
+
+4. Join this back to the data frame `GSS.augmented.other`. (We'll use this more in future exercises.)
+
+5. Make 3 plots comparing the continuous and categorical variables in the "top 10" reduced data set to see if the upper tails show considerably different behaviour than the whole population.
+
+
+
+
+
+

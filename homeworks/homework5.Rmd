@@ -1,0 +1,62 @@
+---
+title: "Homework 5 -- Due Monday October 12, 2015"
+author: "EDF 6938"
+date: "09/29/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+Partly inspired by recent adventures, but connected to everyone's experiences when travelling to Gainesville: This week's homework problem deals with the delays associated with airline travel. In particular, the outcome of interest is whether or not a particular flight was noticeably delayed in its arrival to its destination.
+
+You have been given the following variables about your flights:
+
+- ArrDelay: arrival delay in minutes (negative means an early arrival)
+- Month: month of the flight (1 = January; 12 = December)
+- DayofWeek: day of the week (1 = Monday; 7 = Sunday)
+- AirTime: total time in the air in minutes
+- Distance: total distance of the flight in miles
+- TaxiIn: time taxiing out to the runway in minutes
+- TaxiOut: time taxiing to the gate after landing in minutes
+- DepDelay: departure delay in minutes (negative means an early departure)
+- Diverted: was the plane diverted? 1= Yes, 0 = No
+- Carrier: was there a delay due to the carrier/company? 1 = Yes, 0 = No
+- Weather: was there a delay due to weather? 1 = Yes, 0 = No
+- NAS: was there a delay due to the National Air System? 1 = Yes, 0 = No
+- Security: was there a delay due to security problems? 1 = Yes, 0 = No
+- LateAircraft: was there a delay due to a late aircraft? 1 = Yes, 0 = No
+
+1. Load the data file from its source, `http://www.acthomas.ca/FSSS/data/airline-data.csv`, using the command we used from lecture. How many rows does this data set have? Can you confirm that the column names correspond to the variables above?
+
+2. Which two numerical columns must be converted to factors? Use `mutate()` to do so. Confirm the counts of these factors using the `summary` function applied only to those two columns.
+
+3. Our objective will be to see if a flight's arrival is delayed by more than 10 minutes. Create a new variable in this data frame using `mutate()` corresponding to this 0/1 outcome.
+
+4. Use `glm()` to fit a binary linear model to this outcome with all the variables at your disposal. You may omit one or two variables on sight if you feel they have no bearing on the analysis. 
+
+5. Create a new data frame that standardizes the variables in question: subtract their mean and divide by their standard deviation, in that order. Plot two variables from each to confirm that they appear to have the correct distributions.
+
+5. Repeat Question 4, but with these standardized variables for predictors instead. Which variables have the greatest effect size in each regression?
+
+6. Produce the design/predictors matrix using the `model.matrix()` function. Verify the number of columns corresponds to the number of coefficients in your previous `glm()` output.
+
+7. Use `cv.glmnet()` with the Lasso (`alpha=1`, by default) to run the penalized linear model for quality as the outcome with all your predictors as previously done, for this data frame. What values for `lambda` produce the smallest cross-validated error in each case? How much of a reduction is this in cross-validated error from the basic model you fit in Question 3 (corresponding to `lambda = 0`)?
+
+8. Repeat Question 7, but now using the Ridge penalty (`alpha=0`).
+
+9. Repeat Question 7, but now using an even combination of the two penalties (`alpha=0.5`).
+
+10. For each of the last three problems: Each of these will contain the vector `cvm`; the smallest value of these determines which `lambda` we select. For these three models, which returns the smallest minimum value?
+
+11. Use `glmnet()` to fit the "shrinkage" model to this data set -- whichever one of the previous three gave the smallest `cvm`. Use the same `lambda` series as outputted in the previous steps for each model. Note the column in the `beta` matrix that corresponds to the ideal `lambda`. Do any of the estimates for `beta` in each model get shrunk all the way to zero? 
+
+12. Plot the coefficient estimates from the unshrunken models (step 3) compared to the ideal shrunken models (step 11) to demonstrate whether this shrunken estimation produced a noticeably different response. 
+
+
+
+
+

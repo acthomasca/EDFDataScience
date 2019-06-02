@@ -1,0 +1,64 @@
+---
+title: "Homework 1 -- Due Monday September 14, 2015"
+author: "EDF 6938"
+date: "09/03/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+This homework will use the same skills we practiced in class with the `dplyr` package and the exploration of data frames. Here we will use a sample from the General Social Survey, a long-standing opinion poll that has tracked changes in public sentiment for over 40 years. The main data set has 5,600 columns and nearly 60,000 responses: for this assignment we will use a column subset of the data.
+
+1. Download the data set `GSS-extract.RData` and place it in the same directory as your script. Load the data set into R using the command
+
+```{r, eval=FALSE}
+load ("GSS-extract.RData")
+```
+
+and run the command
+
+```{r, eval=FALSE}
+ls()
+```
+
+to see what variables have been added to memory. This will also be in the "environment" panel of your RStudio window. Confirm that `subGSS` has been added.
+
+2. Use the command `str(subGSS)` to establish that this is in fact a data frame. Identify the columns within. Use `dim(subGSS)` to determine the number of rows and confirm the number of columns in the data set.
+
+3. The table has a large degree of missing data. In particular, the column for the respondent's attitude on marijuana legalization (`grass`) has a great deal of missingness. Let's use `table` to see how this missingness varies by year.
+
+```{r, eval=FALSE}
+table(subGSS$year, is.na(subGSS$grass))
+```
+
+4. Now, do the same thing with `dplyr`:
+
+```{r, eval=FALSE}
+library(dplyr)
+subGSS %>% group_by (year) %>% summarize (present = sum(!is.na(grass)), missing=sum(is.na(grass)))
+```
+
+Check that the results are the same with both methods.
+
+5. Let's reduce this to a more recent data set. Use `filter` to produce and save a new data frame with responses only from 2006 or later.
+
+6. Use `filter` again to reduce the data you have from the previous step to one that has non-missing responses on marijuana use.
+
+7. With this new data set, let's look at attitudes on marijuana usage based on education. Produce a table using `group_by` and `summarize` that shows the number of people who believe marijuana should be legal (and illegal) conditional on each educational status. Do this using the `table` argument as well.
+
+8. Make a new table indicating the *share* of people in each educational state who believe marijuana use should be legal. Use `group_by` and `summarize`.
+
+9. Using your steps from the previous question, add `year` as a grouping variable to make a long-form table of marijuana use by year and educational status.
+
+10. Finally, use `spread` to turn this into a "wide" table, with education status on the rows and year on the columns, so that any changes in the share who believe it should be legal are quickly determined.
+
+
+
+
+
+
+

@@ -1,0 +1,10 @@
+
+agentlist <- readLines ("agents.html")
+
+agentlist[1:10]
+
+grep ("[A-z]+@[A-z\\.]", agentlist, value=TRUE)
+unlist(regmatches(agentlist, gregexpr ("[A-z]+@[A-z\\.]+", agentlist)))
+
+## Phone numbers
+unlist(regmatches(agentlist, gregexpr ("[0-9]{3}-[0-9]{3}-[0-9]{4}", agentlist)))

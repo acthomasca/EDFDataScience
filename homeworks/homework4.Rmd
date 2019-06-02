@@ -1,0 +1,49 @@
+---
+title: "Homework 4 -- Due Monday October 5, 2015"
+author: "EDF 6938"
+date: "09/29/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+For this assignment we're going to take two data sets with identical structural properties, except for one major difference: one is a data set of red wines, the other of white. Your goal will be to come up with the best predictors of quality for a wine given the scientific characteristics observed. We obtained the data from the UCI Machine Learning Repository (https://archive.ics.uci.edu/ml/datasets/Wine+Quality) but pre-processed it a little for the class.
+
+1. Load the data file `wine-tests.RData` into your workspace. Note that one of R's nice features is that you can identify the variables contained in an RData file by wrapping the `load()` function in a `print()` function. What variables are contained within? Confirm that that they are indeed data frames.
+
+```{r, eval=FALSE}
+print(load("wine-tests.RData"))
+```
+
+2. For each of the wine types (red and white), plot the outcome -- `quality` -- against some of the predictors. You should have six total plots.
+
+a) Use volatile acidity as the predictor and density as the color.
+
+b) Use density as the predictor and alcohol as the color.
+
+c) Use total sulfur dioxide as the predictor and sulphates as the color.
+
+Comment on the structure of your plots. Are there any relations between the variables that you find worth highlighting?
+
+3. Now that you have explored the data, perform two linear regressions using `lm()` on quality for both whites and reds separately. Include all variables as predictors, listing them out in sequence for each command statement. Which variable appears to have the most statistically significant outcome?
+
+4. Create two new data frames for `red` and `white`. Use `mutate()` to standardize the variables in question: subtract their mean and divide by their standard deviation, in that order. Plot two variables from each to confirm that they appear to have the correct distributions.
+
+5. Repeat Question 3, but with these standardized variables for predictors instead. Which variables have the greatest effect size in each regression?
+
+6. Produce the design/predictors matrix for each of `red` and `white`. You can use the `select` function from dplyr (as long as you use `as.matrix()` next), the `model.matrix()` function, or some other method of your choosing. Verify the number of columns corresponds to the number of coefficients in your previous `lm()` outputs.
+
+7. Use `cv.glmnet()` with the Lasso (`alpha=1`, by default) to run the penalized linear model for quality as the outcome with all your predictors as previously done, for each of the two data frames. What values for `lambda` produce the smallest cross-validated error in each case? How much of a reduction is this in cross-validated error from the basic model you fit in Question 3 (corresponding to `lambda = 0`)?
+
+8. Use `glmnet()` to fit the "shrinkage" model to each data set. Use the same `lambda` series as outputted in the previous steps for each model. Note the column in the `beta` matrix that corresponds to the ideal `lambda`. Do any of the estimates for `beta` in each model get shrunk all the way to zero? 
+
+9. Plot the coefficient estimates from the unshrunken models (step 3) compared to the ideal shrunken models (step 8) to demonstrate whether this shrunken estimation produced a noticeably different response. 
+
+
+
+
+

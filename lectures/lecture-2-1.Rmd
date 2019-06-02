@@ -1,0 +1,309 @@
+---
+title: "Lecture 2, Hour 1: Data Frames"
+author: "A.C. Thomas -- FSSS"
+date: "08/30/2015"
+output: ioslides_presentation
+---
+
+## Data Frames from Scratch
+
+A data frame in R is an object with 2-dimensional structure: by construction, each column is a variable with its own type and range.
+
+- General case: Column types are unbounded, and can be variables of massive complexity.
+- In this class: columns are each of some "atomic" type: numerical, character, factor, logical
+- Pieces are joined together in order.
+
+
+## What R Does
+
+2 sorts of **objects**: **data** and **functions**
+
+- **Data**:  things like 7, "seven", $7.000$, the matrix $\left[ \begin{array}{ccc} 7 & 7 & 7 \\ 7 & 7 & 7\end{array}\right]$
+
+- **Functions**: things like $\log{}$, $+$ (two arguments), $<$ (two), $\mod{}$ (two), `mean` (one)
+
+A function is a machine which turns input objects (**arguments**) into an output object (**return value**), possibly with **side effects**, according to a definite rule
+
+## Data objects
+
+All data is represented in binary format, by **bits** (TRUE/FALSE, YES/NO, 1/0)
+
+- **Booleans/Logicals** Direct binary values: `TRUE` or `FALSE` in R
+- **Integers**: whole numbers (positive, negative or zero), represented by a fixed-length block of bits
+- **Characters** fixed-length blocks of bits, with special coding;
+**strings** = sequences of characters
+- **Floating point numbers**: a fraction (with a finite number of bits) times an exponent, like $1.87 \times {10}^{6}$, but in binary form
+- **Missing or ill-defined values**: `NA`, `NaN`, etc.
+
+
+## Constructing Data Frames
+
+Here's a data frame constructed from scratch.
+
+```{r}
+some.states <- data.frame (state=c("Alabama", "Georgia", "Florida"),
+                           abbrev = c("AL","GA","FL"),
+                           pop = c("4779736", "9687673", "18801310"))
+str(some.states)
+summary(some.states)
+```
+
+
+## Loading in outside sources
+
+```{r}
+all.states <- read.csv ("NewStates.csv")
+head(all.states, 2)
+```
+
+
+## Basic Operations: Row Subsets By Condition
+
+Three methods:
+
+```{r}
+all.states[all.states$zone == "ESCent",]
+subset (all.states, zone == "ESCent" & pop2005 > 3000)
+
+library(dplyr)
+filter (.data = all.states, zone == "ESCent", pop2005 > 3000)
+```
+
+
+## Basic Operations: Row Subsets By Position
+
+```{r}
+all.states[3:5,]
+slice (all.states, 3:5)
+
+all.states[13,]
+slice (all.states, 13)
+```
+
+## Basic Operations: Column Subsets
+
+Number of column:
+
+```{r}
+all.states[,2,drop=FALSE]
+all.states[[2]]
+```
+
+Name of column:
+
+```{r}
+all.states[["Area"]]
+all.states[,"Area",drop=FALSE]
+```
+
+Reduces this to a vector; removes geometry.
+
+## Basic Operations: Column Subsets
+
+dplyr:
+
+```{r}
+head(select (all.states, Area), 5)
+```
+
+
+## Basic Operations: Sorting
+
+Let's take a subset of states.
+
+```{r}
+WSCent <- filter (all.states, zone == "WSCent")
+WSCent
+arrange (WSCent, pop2005)
+
+WSCent$pop2005
+order(WSCent$pop2005)
+WSCent[order(WSCent$pop2005),]
+slice(WSCent, rev(order(pop2005)))
+```
+
+
+
+## Basic Operations: Sorting
+
+Let's take a subset of states.
+
+```{r}
+arrange (WSCent, desc(pop2005))
+top_n (arrange(WSCent, desc(Area)), 2, pop2005)
+```
+
+
+## "Pipe" operator
+
+Rather than nesting terms explicitly, the "pipe" from the R package `magrittr` helps to clean up syntax.
+
+Default: make the item you "pipe" the first argument of the next function (parentheses optional, but helpful)
+
+```{r}
+sqrt(81)
+81 %>% sqrt
+65536 %>% sqrt()
+```
+
+If you don't want the first argument, use the placeholder `.` to mark the item you want replaced.
+
+```{r}
+pnorm(0.5, 0, 2)
+2 %>% pnorm(0.5, 0, .)
+```
+
+
+## Group operations
+
+Why this is so useful for our purposes: inline grouping by "key"(s). `group_by` function
+
+```{r}
+top_n(group_by(all.states, zone), 1, pop2005)
+```
+
+## Group operations
+
+Combine this with the pipe and the order of operations is clear.
+
+```{r}
+all.states %>% group_by (zone) %>% top_n (1, pop2005)
+```
+
+## Group operations
+
+Bottom up:
+
+```{r}
+all.states %>% group_by (zone) %>% top_n (1, desc(pop2005))
+```
+
+
+## Group operations
+
+Combine this with the pipe and the order of operations is clear.
+
+```{r}
+all.states %>% group_by (zone) %>% arrange(Area)    ##
+save.me.please <- all.states %>% group_by (zone) %>% top_n (1, desc(pop2005)) %>% ungroup %>% arrange(Area)    ##
+```
+
+```{r}
+all.states %>% group_by(zone) %>% slice(10)
+all.states %>% group_by(zone) %>% filter(pop2005 > median(pop2005))
+all.states %>% group_by(zone) %>% filter(pop2005 >= median(pop2005))
+all.states %>% group_by(zone) %>% mutate(pop.above.median = pop2005 - as.numeric(median(pop2005)))
+
+```
+
+## Group operations
+
+Bottom up:
+
+```{r}
+all.states %>% group_by (zone) %>% top_n (1, desc(pop2005)) %>% ungroup %>% arrange(zone)
+```
+
+
+## Group summaries
+
+Let's get some summary statistics on our group of US States.
+
+```{r}
+all.states %>% summarize (totalpop2005=sum(pop2005),
+                          count=n(),
+                          Area=sum(Area))
+```
+
+Grouping by zone:
+
+```{r}
+all.states %>% group_by (zone) %>%
+  summarize (totalpop2005=sum(pop2005),
+             count=n(),
+             Area=sum(Area))
+```
+
+
+## Group summaries
+
+Let's add some more categories for building a new data frame:
+
+```{r}
+all.states %>% group_by (zone) %>%
+  summarize (totalpop2005=sum(pop2005),
+             count=n(),
+             Area=sum(Area),
+             meanpop2005 = mean(pop2005),
+             sdpop2005 = sd(pop2005) ##, CoD = sdpop2005/meanpop2005
+             ) %>%
+  mutate (CoD = sdpop2005/meanpop2005)
+```
+
+
+
+## Spread and Gather
+
+This data frame is "tidy" if our experimental unit is "state". What about "state-year"? Recall
+
+```{r}
+WSCent
+```
+
+Use "gather"
+
+```{r}
+library(tidyr)
+longtable <- gather (WSCent,  ## data frame for input.
+                     year,    ## name for the "key"
+                     population, ## name for the "value"
+                     pop2005:pop1990)  ## columns to gather.
+longtable
+```
+
+## Spread and Gather
+
+```{r}
+longtable <- longtable %>% mutate (year = substr(year, 4, 7))
+plot(longtable$year, longtable$population)  
+```
+
+## Spread and Gather
+
+```{r}
+widetable <- longtable %>% spread (year, population)
+widetable
+```
+
+
+## Setting up lagged data
+
+We have lagged data implicitly in this table, but putting it in the long form would be useful too:
+
+```{r}
+longtable.2 <- longtable %>% group_by (State) %>% mutate (lagpop = lag(population))
+head(longtable.2)
+```
+
+## Setting up lagged data
+
+Whoops! Have to put it in order first because `lag()` doesn't care about numerical order, just vector order.
+
+```{r}
+longtable.2 <- longtable %>% group_by (State) %>% arrange (year) %>% mutate (lagpop = lag(population))
+head(longtable.2)
+```
+
+## Let's add to it and check it.
+
+```{r}
+longtable.2 <- longtable %>% group_by (State) %>% arrange (year) %>% 
+  mutate (lagpop = lag(population),
+          growthrate = population/lagpop) %>% ungroup
+slice(longtable.2, 5:8)
+plot(growthrate ~ State, data = longtable.2)
+```
+
+
+
+

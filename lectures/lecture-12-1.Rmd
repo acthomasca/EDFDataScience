@@ -1,0 +1,95 @@
+---
+title: 'EDF 6938 Lecture 9: Basic Text Processing II'
+author: "A.C. Thomas -- FSSS"
+date: "10/18/2015"
+output: html_document
+---
+
+Today: Let's put together some results and sum up for the rest of the project. We want to build data frames from our data streams and use them to compose some predictors.
+
+We should have two weekends worth of data now. Your task is to complete this data roundup for the next two weekends as well (Nov 21, Nov 28) such that on November 30, you will have between 4 and 6 weeks worth of data from your scrapes. But what if this isn't enough, particularly given the users you've found in the recent sample, if we need to go back in time?
+
+Well, we might be able to do this in R. Or not.
+
+```{r, eval=FALSE}
+tweets <- readLines ("http://www.acthomas.ca/FSSS")
+tweets <- readLines ("https://twitter.com/GatorsFB")
+```
+
+Other options have luckily been conceived of already.
+
+```{r, eval=FALSE}
+library(RCurl)
+gogators <- getURL("https://twitter.com/GatorsFB") ##, ssl.verifypeer = FALSE)
+writeLines (gogators, "gogators.txt") ## check it out
+tweets <- regmatches(gogators, gregexpr ('(?<=<p class=\"TweetTextSize TweetTextSize--16px js-tweet-text tweet-text\" lang=\"en\" data-aria-label-part=\"0\").*(?=</p>)', gogators, perl=TRUE))
+```
+
+So from this, we can put together our own manual collection of tweets directly scraping from the user page. Except... it's queried to scrolling. Worst case, we have to do this ourselves, and manually:
+
+```{r}
+tweets2 <- paste(readLines ("gators3.txt"), collapse = "")
+regmatches(tweets2, gregexpr ('(?<=<p class="TweetTextSize TweetTextSize--16px js-tweet-text tweet-text" lang="en" data-aria-label-part="0">).*?(?=</p>)', tweets2, perl=TRUE))
+```
+
+Not the greatest solution here, but it can do in a pinch. Here's another: copy and paste it yourself from the actual page once the scrolling is done.
+
+```{r}
+copiedPage <- paste (readLines("saved-uf.txt"), collapse = "")
+regmatches(copiedPage, gregexpr ('(?<=@GatorsFB).*?(?=[0-9]+ retweets)', copiedPage, perl=TRUE))
+```
+
+Twitter Advanced Search: (https://twitter.com/search-advanced?lang=en)
+
+## Homework 10
+
+This will be the instruction set to build the rest of the tweet library we'll need to finish the data we need. 
+
+1) Identify the user in your collection of 25 with the greatest number of tweets in your sample.
+
+For this one user:
+
+2) Use the "getURL" solution to grab their history of tweets on their visible page. How many tweets were obtained? Did you need to alter the HTML from the existing example above in order to make this work?
+
+3) Use the "copy from source" solution. How many tweets were obtained? Did you need to alter the HTML from the existing example above in order to make this work?
+
+4) Use the "copy from direct page" solution. Go back to September 1 if possible. How many tweets were obtained? Did you need to alter the HTML from the existing example above in order to make this work?
+
+5-28) Which of these solutions was the most productive? Use this to grab the same table for all of your 25 individuals.
+
+*Yes, this is going to be a bit tedious, but that's what a lot of research is.*
+
+29) For each of the selections of tweets you have now gathered, create a data frame with three columns: the username, the date of the tweet, and the contents of the tweet itself. Join these together using `rbind_list` into one giant data frame for all your content. Consider this assignment's "cut-off" date to be as of November 14.
+
+## Rest of Project Instructions
+
+This assumes we have all the data we need to finish the project from the above.
+
+1) Get the record for your team in all games from September 1 until November 14. This means a data frame with columns for date (use YYYY-MM-DD), opponent, "did they win", your team's score and the opponent's score. If at all possible, see if you can find the closing "spread" -- the market estimate for the median margin of victory for your team -- and add this to the list. You will have to construct this yourself in your favorite spreadsheet program; save this to a `.csv` file.
+
+2) Repeat the analyses for the sentiment analysis from the previous homework for the data set you have put together on your 25 "sensors". That means each tweet will have a column indicating the likely positive/negative subjectivity and the relevant most-likely emotion.
+
+3) Collect these using `dplyr` for the average subjectivity (positive/negative) and the total fraction of each emotion (joy, anger, etc) for the tweets for a user on a particular day. Collect these for the two days preceding a game. This means you should have 50 rows corresponding to each game, times as many games as you have in your collection.
+
+4) Add the result for the game that followed (win/loss) as a column to this table. Can you do this automatically by joining the date in your table to the date in your game result? You should be able to manipulate your result in Question 1 to do this; you may need the `as.Date()` function in R.
+
+5) Conduct a logistic regression on the win-loss outcome. Include the emotional and subjective variables in your analysis. Were any of them predictive of winning?
+
+6) Repeat the previous two steps, but indicate whether your team instead won the game by more than 7 points. Do this again for whether your team lost by more than 7 points. Do this again for if they beat or tied the spread.
+
+7) Given the content of your prior analyses, do you believe that social media sensoring is a reasonable way to get predictive information about the game that might not otherwise be useful?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

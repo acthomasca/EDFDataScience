@@ -1,0 +1,47 @@
+---
+title: "pre-lecture-2"
+author: "ACT"
+date: "08/26/2015"
+output: html_document
+---
+
+This script is to make sure R and RStudio are installed correctly and all packages we need for Class Session 2 (August 31) are working properly.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. One such code block is below. You should run the code in the Console below once so that required packages are installed, but since this should not execute *every* time, we set the condition in the settings so that it won't evaluate this code. 
+
+You can either copy the code manually into the console, or keep the cursor on the line and press Ctrl+Enter to run said line.
+
+```{r,  eval=FALSE}
+install.packages("dplyr")
+install.packages("tidyr")
+install.packages("MASS")
+```
+
+Now, let's make sure that these libraries loaded properly.
+
+```{r}
+library(dplyr)
+library(MASS)
+sessionInfo()
+```
+
+Make sure that `MASS` and `dplyr` appear in the section "other attached packages".
+
+Here's a built-in data frame in the `MASS` library: `Cars93`. Let's make sure it's up and running.
+
+```{r}
+## load the data into memory.
+data(Cars93)
+## Print the first two rows of the data set.
+head(Cars93, 2)  
+plot (MPG.city ~ MPG.highway, data=Cars93, main="Comparing Highway and City Mileage for Cars93")
+```
+
+Now let's do some quick data reduction using `dplyr` and the pipe operator.
+
+```{r}
+Cars93 %>% group_by (Type) %>% summarize (mean.MPG = mean(MPG.city), 
+                                          sd.MPG = sd(MPG.city))
+```
+
+If this all worked without errors, you're ready for Session 2!

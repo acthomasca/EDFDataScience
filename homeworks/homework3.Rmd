@@ -1,0 +1,47 @@
+---
+title: "Homework 3 -- Due Monday September 28, 2015"
+author: "EDF 6938"
+date: "09/21/2015"
+output: html_document
+---
+
+Add your code blocks to this document and alter the Author name to yours. Your submission will consist of your own R Markdown file plus the compiled HTML version of the document.
+
+I encourage you to submit your completed version as soon as possible. We will grade this quickly so that any opportunities for a regrade can be done quickly.
+
+## Assignment
+
+Let's expand the GSS to include some new variables on guns and gun control. Specifically, the file `GSS-extract-3.RData` contains five new survery questions:
+
+- `gunlaw`: do you favor or oppose permit requirements for gun ownership?
+- `owngun`: does the respondent have a gun in their home?
+- `hgunlaw`: should there be more restrictions on handguns?
+- `hguncrim`:  do restrictions on handguns decrease crime?
+- `gunimp`: how important is the gun control issue to the respondent?
+
+1. The first two have very high response counts compared to the last three. What fraction of respondents provided no response to each question?
+
+2. For the latter three questions: during what survey years were these ones asked?
+
+Let's examine the trends over time for the first two with `ggplot2` and `dplyr`.
+
+3. Create a new data frame, grouping by year, marital status and degree, that shows the share of people who favor permit requirements, the share of people who have a gun in their home, and the share who favor permits who also have a gun in their home. How many rows and columns does this data frame have?
+
+4. Use `ggplot` to show the trend in these three responses over time. Do this first without any facet division (but coloring by degree); then by faceting by degree to show the overall trends within each group. What do you notice, if anything, about these trends?
+
+5. Take the instructions you used for the data frame in question **3**, and produce a new data frame with the same columns plus the other social variables that we had in previous cases: marijuana legalization, interracial marriage, premarital sex ("not wrong" vs the other categories). Add also the mean income within each group. How many rows and columns does this data frame have?
+
+Using this bigger data frame:
+
+6. Plot the share of gun ownership against the share of favoring permits across all years (that is, do not have year as a value on the x or y axis) using `geom_point()`. Change the fill color to one of the other variables to see if you can spot a trend; do the same with point size, using the help menu for `geom_point()` to learn how to do this. You may pick any two that you choose from the social variables.
+
+7. Similarly, create a series of new plots for the share of gun ownership against each of the other social variables (as many plots as variables). In each case, pick two other social variables to affect the color and size of the remaining points.
+
+8. From the previous question, choose one of these plots that you find the most interesting based on the size and color features you have observed. Use the facets feature to produce a new plot that explores this  on the grouping variables. Describe what you see as the most interesting relationship across that facet decomposition.
+
+
+
+
+
+
+

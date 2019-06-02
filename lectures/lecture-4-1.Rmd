@@ -1,0 +1,375 @@
+---
+title: "EDF 6938 Lecture 4: Introduction to ggplot2"
+author: "A.C. Thomas -- FSSS"
+date: "09/21/2015"
+output: html_document
+---
+
+This will be presented in full R Markdown document form rather than ioslides largely because of the sheer number of graphics and options being presented here. Which is great, because `ggplot2` is extremely thorough with its graphical prowess.
+
+## Install ggplot2
+
+```{r, eval=FALSE}
+install.packages("ggplot2")  ## which is obvious
+install.packages("MASS")     ## which we need for some data.
+```
+
+We can use base R graphics to accomplish a lot, but the biggest selling point for `ggplot2` is that it works naturally with data frame structure.
+
+## Simple plots with `qplot`
+
+Let's load the package and get some data to work with. I've got a favorite here:
+
+```{r}
+library(ggplot2)
+library(MASS)
+head(Cars93)
+```
+
+There are two modes for plotting: "basic", using `qplot()`, and "advanced", using `ggplot()`. Let's start with the basics.
+
+Some factorial variables, 1-D:
+
+```{r}
+qplot (DriveTrain, data = Cars93)   
+qplot (Type, data = Cars93)   
+qplot (AirBags, data = Cars93)   
+```
+
+Defaults to bar charts. What about ...
+
+```{r}
+qplot (y = DriveTrain, data = Cars93)   
+qplot (y = Type, data = Cars93)   
+qplot (y = AirBags, data = Cars93)   
+```
+
+Some numerical variables, 1-D:
+
+```{r}
+qplot (MPG.city, data = Cars93)     ## numerical
+qplot (MPG.highway, data = Cars93)     ## numerical
+qplot (Rev.per.mile, data = Cars93)     ## numerical
+```
+
+Defaults to histograms. Similarly:
+
+```{r}
+qplot (y=MPG.city, data = Cars93)     ## numerical
+```
+
+Let's add some more features. Two-dimensional plots:
+
+```{r}
+qplot (DriveTrain, Type, data = Cars93)
+```
+
+OK, not the mosaic plot we got last time by default. Bummer. Available elsewhere. One feature to add, a sneak peek ahead
+
+```{r}
+qplot (DriveTrain, Type, data = Cars93) + geom_jitter()
+```
+
+How about this?
+
+```{r}
+qplot (DriveTrain, data = Cars93, fill = Type)
+```
+
+Continuous vs categorical:
+
+```{r}
+qplot (DriveTrain, MPG.city, data = Cars93)
+qplot (MPG.city, DriveTrain, data = Cars93)
+```
+
+2-D scatterplots: Where we shine! Lots of quick detail with third factors.
+
+```{r}
+qplot (MPG.city, MPG.highway, data=Cars93)
+qplot (MPG.city, MPG.highway, data=Cars93, col=Type)
+qplot (MPG.city, Price, data=Cars93, col=Type)
+qplot (MPG.city, 1/Price, data=Cars93, col=Type)
+```
+
+
+## Expanding on this: `ggplot` is extensive
+
+The basic premise of `ggplot`: 
+
+1. Establish which variables in your data will be the (x,y) pair.
+2. Add new features according to "geometries", which may themselves use other columns in the data.
+3. Make everything additive.
+
+Basic notation:
+
+```{r, eval=FALSE}
+ggplot (Cars93,       ## the data frame
+        aes (Type)    ## the "aesthetics"
+        )
+```
+
+This sets up the basics that follow, but triggers an error when we run it. We have to add at least one layer. For example:
+
+```{r}
+first.gg <- ggplot (Cars93,       ## the data frame
+        aes (Type)    ## the "aesthetics"
+        ) + 
+  geom_bar() + 
+  ggtitle ("Car Counts by Type")
+first.gg
+```
+
+How about the coloring we saw before? Add in the "aesthetic" criteria.
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (Type)    ## the "aesthetics"
+        ) + 
+  geom_bar(aes(fill = DriveTrain)) + 
+  ggtitle ("Car Counts by Type")
+```
+
+We're only going to get so much out of 1-D categorical data, but it's a good place to introduce the "group_by" of `ggplot`, "facets". 
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (Type)    ## the "aesthetics"
+        ) + 
+  geom_bar(aes(fill = DriveTrain)) + 
+  ggtitle ("Car Counts by Type, Grouped by Drive Train") + 
+  facet_grid (. ~ DriveTrain)
+```
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (Type)    ## the "aesthetics"
+        ) + 
+  geom_bar(aes(fill = DriveTrain)) + 
+  ggtitle ("Car Counts by Type, Grouped by Drive Train") + 
+  facet_grid (Horsepower ~ .)
+```
+
+
+Let's explore a few of the 1-D continuous options:
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_dotplot() + 
+  ggtitle ("Car Mileages")
+```
+
+Unexpected side-effects.
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_dotplot(aes(fill = Type)) + 
+  ggtitle ("Car Mileages")
+```
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_histogram() + 
+  ggtitle ("Car Mileages")
+```
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_histogram(aes(fill = Type), binwidth=2) + 
+  ggtitle ("Car Mileages")
+```
+
+Overlap can be an issue here:
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_density(aes(fill = Type)) + 
+  ggtitle ("Car Mileages")
+```
+
+Does splitting by group help our view here? Note the mild statistical distortion: all the frequencies by group add to 1 even though the baseline groups are of unequal size.
+
+```{r}
+ggplot (Cars93,       ## the data frame
+        aes (MPG.city)    ## the "aesthetics"
+        ) + 
+  geom_density(aes(fill = Type)) + 
+  ggtitle ("Car Mileages") +
+  facet_grid (Type ~ .)
+```
+
+## Two Variable Plots
+
+Let's start with Categorical and Continuous using some of the grouping we already have. Basic:
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_point()
+```
+
+Box and whisker plot:
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_boxplot()
+```
+
+Violin plot -- density estimate:
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_violin()
+```
+
+Violin plot with color for contrast:
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_violin(aes(fill=Type))
+```
+
+Let's add another feature: put the points right on the plot!
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_violin(aes(fill=Type)) + geom_point()
+```
+
+Let's add some more space to the points to get rid of the overlap.
+
+```{r}
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_violin(aes(fill=Type)) + geom_jitter()
+ggplot (Cars93,           ## the data frame
+        aes (Type,        ## x axis
+             MPG.city)    ## y axis
+        ) + 
+  geom_violin(aes(fill=Type)) + geom_jitter(position = position_jitter(width = .1, height = 0))
+```
+
+
+## Scatterplots And Beyond
+
+Start simple. And let's save this to a variable so we don't have to repeat the same commands.
+
+```{r}
+base.two <- ggplot (Cars93, aes (EngineSize, Price)) + ggtitle ("Car Price by Engine Size") + geom_blank()
+
+base.two 
+```
+
+Let's add some features to it.
+
+```{r}
+base.two + geom_point(aes(col=Type))
+
+base.two + geom_point(aes(col=Type)) + geom_rug(aes(col=Type))
+
+base.two + geom_point(aes(col=Type)) + geom_smooth()
+
+base.two + geom_point(aes(col=Type)) + geom_smooth() + facet_grid (Type ~ .)
+```
+
+## Time Series Data
+
+Inherently "continuous". Data set of interest for exploration: monthly production of beer in Australia.
+
+```{r}
+library (dplyr)
+beer <- read.csv("aus-beer.csv")
+head(beer)
+beer <- mutate (beer, ym = Year + Month/12-1/12)
+beer <- mutate (beer, HalfDecade = floor (Year/5))
+
+scatter1 <- ggplot (beer, aes (ym, beer.megalitres)) + geom_blank()
+scatter1 + geom_point()
+scatter1 + geom_smooth() + geom_point()
+
+scatter2 <- ggplot (beer, aes (Month, beer.megalitres)) + geom_blank()
+scatter2 + geom_point(aes(col = as.factor(HalfDecade))) + facet_wrap (~ HalfDecade) + geom_smooth()  + theme(legend.text=element_text(size=12))
+
+```
+
+Another from MASS: Deaths and Serious Injuries of Car Drivers in Great Britain, 1969-1984
+
+```{r}
+head(drivers)
+class(drivers)
+
+newdrivers <- data.frame (year = time(drivers), casualties = as.vector(drivers)) %>% mutate (month = year - floor(year))
+
+baseplot <- ggplot (newdrivers, aes (year, casualties)) + geom_point() + ggtitle ("Driving Casualties in Great Britain")
+baseplot
+```
+
+Interesting fact: a mandatory seat belt law was introduced on January 31, 1983. So let's notate it.
+
+```{r}
+baseplot + geom_vline(xintercept=1983)
+```
+
+Is there a seasonal effect?
+
+```{r}
+ggplot (newdrivers, aes(month, casualties)) + geom_point()
+```
+
+Let's look at Decembers.
+
+```{r}
+baseplot + geom_vline(aes(xintercept=year[month == max(month)]), col=2, lty=2)
+```
+
+Let's look at a smoother data set with the seatbelt law in place. We have to override the data for each part of the plot.
+
+```{r}
+baseplot + 
+  geom_vline(xintercept=1983) + 
+  geom_smooth (data=filter (newdrivers, year < 1983)) + 
+  geom_smooth (data=filter (newdrivers, year >= 1983)) 
+```  
+  
+
+## Today's In-Class Assignment
+
+1) Load the `GSS-extract-2.RData` file from previous classes and assignments.
+
+2) Use `ggplot2` to explore the data -- plotting individual columns against each other, adding colors corresponding to variables. In particular:
+
+a) Compare TV behaviour to Radio behaviour in the whole data set. Add facets for marijuana, interracial marriage, gay marriage.
+
+b) Group the data by year and other factors to get the share of demographic variables -- the idea being, we will track the acceptance of gay marriage and marijuana legalization over years.
+
+c) Do the same thing with the income achieved per person, using both the ungrouped and grouped data, to see if income changes differ given social attitudes.
+
+
+
+

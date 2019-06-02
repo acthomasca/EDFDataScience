@@ -1,0 +1,196 @@
+---
+title: 'EDF 6938 Lecture 6: Binary Prediction Methods (I)'
+author: "A.C. Thomas -- FSSS"
+date: "10/04/2015"
+output: html_document
+---
+
+One of the biggest reasons for the large presence of computer science's foray into "machine learning" -- what statisticians would have just called "statistics" for decades -- is the field's success in answering questions of prediction, particularly with to binary outcomes.
+
+Today we'll cover the most straightforward "statistical learning" method for prediction, and follow it with other binary prediction methods that are more common in industry next week.
+
+## 1. Binary Regression with `glm()`
+
+The options here are essentially the same as they were in the linear case: outcomes given predictors. For this example, let's use a data set with a well-understood variable set: a passenger roster for the RMS Titanic.
+
+```{r}
+library(dplyr)
+titanic <- read.table ("http://www.acthomas.ca/FSSS/data/titanic.txt", header=TRUE)
+head(titanic)
+summary(titanic)
+```
+
+We need one adjustment.
+
+```{r}
+titanic <- mutate (titanic, 
+                   Class = c("Crew","First","Second","Third")[Class + 1])
+```
+
+Let's find the total ship's complement divided by each factor:
+
+```{r}
+group_by (titanic, Adult) %>% summarize (count=n(), Survived = sum(Survived))
+group_by (titanic, Class, Male, Adult) %>% summarize (count=n(), Survived = sum(Survived))
+
+first_sample <- sample (nrow(titanic), 200)
+group_by (titanic %>% slice (first_sample), Class, Male, Adult) %>% summarize (count=n(), Survived = sum(Survived))
+group_by (titanic %>% slice (-first_sample), Class, Male, Adult) %>% summarize (count=n(), Survived = sum(Survived))
+group_by (titanic %>% slice (-first_sample), Male, Adult) %>% summarize (count=n(), Survived = sum(Survived))
+
+```
+
+
+Let's now fit a model to survival:
+
+```{r}
+survival.one <- glm (Survived ~ Class - 1, data=titanic)
+summary(survival.one)
+```
+
+Well, this would be good if we were directly fitting to the share of survivors -- as if this was a straight linear model on the zero-one outcomes. (Not a problem here, but would be with more variables.) We need better!
+
+Logistic link is default:
+
+```{r}
+survival.logit <- glm (Survived ~ Class - 1, family=binomial, data=titanic)
+summary(survival.logit)
+```
+
+"Probit" link is also possible:
+
+```{r}
+survival.probit <- glm (Survived ~ Class - 1, family=binomial(link=probit), data=titanic)
+summary(survival.probit)
+```
+
+The effective difference between the two is in the link function, but at practical levels they're basically capturing the same things:
+
+```{r}
+library(ggplot2)
+qplot (survival.logit$coef, survival.probit$coef)
+cbind (survival.logit$coef, survival.probit$coef, survival.logit$coef/survival.probit$coef)
+```
+
+See here:
+
+```{r}
+xpoints <- seq(-5,5,by=0.1)
+plot (xpoints, dnorm(xpoints), col=2)
+points (xpoints, dlogis(xpoints))
+lines (xpoints, dlogis(xpoints, scale=0.25/0.4), col=4)
+```
+
+The main difference is in the tails of the distribution, but for our purposes they're just about the same. So let's continue with logit for now.
+
+```{r}
+survival.more <- glm (Survived ~ Male + Class + Adult, family=binomial, data=titanic)
+summary(survival.more)
+```
+
+Here we can be fairly exhaustive: let's get all combinations of variables.
+
+```{r}
+survival.big <- glm (Survived ~ Male*Class*Adult - 1, family=binomial, data=titanic)
+summary(survival.big)
+```
+
+We have a lot going on here. Let's reduce it to just adult passengers.
+
+```{r}
+titanic.adult <- filter(titanic, Class != "Crew", Adult == 1)
+survival.big.two <- glm (Survived ~ Male*Class, family=binomial, data=titanic.adult)
+summary(survival.big.two)
+```
+
+
+## 2. Binary Regression with `glmnet()` 
+
+We have the same powerful tools as before to do binary regression. The Titanic data set isn't big enough to do anything interesting with it (and we don't expect the same thing to happen again)
+
+For this example, let's bring in another data set of interest which *does* have out-of-sample validity: the measurements of radon in houses across the state of Minnesota. (Compliments of Gelman and Hill, "Data Analysis...")
+
+```{r}
+radon <- read.table ("http://www.acthomas.ca/FSSS/data/mn-radon.txt", header=TRUE)
+head(radon)
+summary(radon)
+qplot(radon$radon)
+qplot(radon$log.radon)
+```
+
+Assume we're only interested in a "threshold" level of radon for toxicity purposes. (We might think this is ludicrous, but this is actually how policy decisions get made.)
+
+Let's do the standard `lm()` type first with `log.radon`. 
+
+```{r}
+radon.zero <- glm (log.radon ~ log.uranium + floor, data = radon)
+summary(radon.zero)
+```
+
+Here's the `glmnet` fit to this data.
+
+```{r}
+library(glmnet)
+radon.glmnet.cv <- cv.glmnet (cbind(radon$log.uranium, radon$floor), radon$log.radon)
+plot(radon.glmnet.cv)
+picked.r1 <- which (radon.glmnet.cv$lambda == radon.glmnet.cv$lambda.min)
+
+radon.glmnet <- glmnet (cbind(radon$log.uranium, radon$floor), radon$log.radon)
+plot(radon.glmnet)
+cbind (radon.zero$coefficients, c(radon.glmnet$a0[picked.r1], radon.glmnet$beta[,picked.r1]))
+```
+
+
+Now let's do the standard `glm()` with a binary outcome. 
+
+```{r}
+radon <- mutate (radon, badradon = 1*(radon >= 5))
+table(radon$badradon)
+radon.one <- glm (badradon ~ log.uranium, data = radon, family=binomial)
+summary(radon.one)
+
+radon.two <- glm (badradon ~ log.uranium + floor, data = radon, family=binomial)
+summary(radon.two)
+```
+
+And the `glmnet` version.
+
+```{r}
+radon.glmnet.cv <- cv.glmnet (cbind(radon$log.uranium, radon$floor), radon$badradon, family="binomial")
+plot(radon.glmnet.cv)
+picked.r1 <- which (radon.glmnet.cv$lambda == radon.glmnet.cv$lambda.min)
+
+radon.glmnet <- glmnet (cbind(radon$log.uranium, radon$floor), radon$badradon, family="binomial")
+plot(radon.glmnet)
+cbind (radon.two$coefficients, c(radon.glmnet$a0[picked.r1], radon.glmnet$beta[,picked.r1]))
+```
+
+No big deal so far. Let's add in counties now, since that's one aspect of the variation we'd love to pick up.
+
+```{r}
+bigradon <- glm (badradon ~ log.uranium + floor + county.name, data = radon, family=binomial)
+summary(bigradon)
+```
+
+Yikes! What went wrong here? Complete separation -- some counties have no cases (as we can expect).
+
+```{r}
+county.break <- model.matrix (~ 0 + county.name, radon)
+covmat <- cbind(log.u=radon$log.uranium, floor=radon$floor, county.break)
+radon.glmnet.county.cv <- cv.glmnet (covmat, radon$badradon, family="binomial")
+plot(radon.glmnet.county.cv)
+picked.r2 <- which (radon.glmnet.county.cv$lambda == radon.glmnet.county.cv$lambda.min)
+
+radon.glmnet <- glmnet (covmat, radon$badradon, family="binomial")
+plot(radon.glmnet)
+print(radon.glmnet$beta[,picked.r2])
+```
+
+
+
+
+
+
+
+
+

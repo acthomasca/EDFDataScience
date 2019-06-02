@@ -1,0 +1,114 @@
+---
+title: 'EDF 6938 Lecture 9: Basic Text Processing II'
+author: "A.C. Thomas -- FSSS"
+date: "10/18/2015"
+output: html_document
+---
+
+Today: Building a data frame out of the tweets we currently have available. Using this to make some conclusions about what will follow.
+
+A current task: each week I would like you to collect new data surrounding the university of choice and save it to a new file/location. In this way, when the final project is due, you will have several weeks of data on which to collect your results. 
+
+This week, we'll do a little more with the sort of data we've already been collecting. Beforehand, we have a couple more tools we need to get more packages. First, we can use an alternate repository:
+
+```{r, eval=FALSE}
+install.packages("Rstem", repos = "http://www.omegahat.org/R", type="source")
+```
+
+Second, we can use packages hosted on GitHub:
+
+```{r, eval=FALSE}
+install.packages("devtools")
+library(devtools)
+install_github ("timjurka/sentiment/sentiment")
+```
+
+To use these, let's get some data. Assume this is already downloaded.
+
+```{r, eval=FALSE}
+library(twitteR)
+library(dplyr)
+
+## here are the keys I obtained. Get your own!
+source ("twitter-access-keys.R")
+
+setup_twitter_oauth(consumer_key, 
+                    consumer_secret, 
+                    access_token, 
+                    access_secret)
+umich <- searchTwitter('#goblue', since="2015-10-30", until="2015-11-01", n=10000)  ##
+umich2 <- rbind_all (lapply (umich, function(rr) rr$toDataFrame()))
+
+umich3 <- searchTwitter('#goblue', since="2015-11-06", until="2015-11-08", n=10000)  ##
+umich4 <- rbind_all (lapply (umich3, function(rr) rr$toDataFrame()))
+save (umich2, umich4, file="umuch-primer.RData")
+```
+
+Let's see what it's actually doing here: (https://github.com/timjurka/sentiment/tree/master/sentiment) contains the source for the package itself and the word lists themselves. I've extracted them here:
+
+```{r eval=FALSE}
+subjectivity <- read.csv ("http://www.acthomas.ca/FSSS/data/subjectivity.csv", header=FALSE)
+emotions <- read.csv ("http://www.acthomas.ca/FSSS/data/emotions.csv", header=FALSE)
+```
+
+From here, let's consider what's being offered:
+
+```{r}
+library(sentiment)
+##load ("umuch-primer.RData")
+load (url("http://www.acthomas.ca/FSSS/data/umuch-primer.RData"))
+
+## Might need to do this:
+umich2$text <- iconv (umich2$text, to="utf-8-mac")
+
+umich2 <- cbind(umich2, classify_polarity(umich2$text))
+umich4 <- cbind(umich4, classify_polarity(umich4$text))
+
+classify_polarity (umich2$text[1:10], verbose = TRUE)
+classify_emotion (umich2$text[1:10], verbose = TRUE)
+```
+
+
+Let's take another example:
+
+```{r eval=FALSE}
+WStweets1 <- searchTwitter('#worldseries', since="2015-11-02", until="2015-11-03", n=100000)
+## save (WStweets1, file="WStweets1.RData"); load (file="WStweets1.RData")
+WStweets.df <- rbind_all (lapply (WStweets1, function(rr) rr$toDataFrame()))
+WStweets2 <- cbind(WStweets.df, classify_emotion (WStweets.df$text))
+
+WStweets0 <- searchTwitter('#worldseries', since="2015-11-02", until="2015-11-03", n=100)
+WStweets0.df <- rbind_all (lapply (WStweets0, function(rr) rr$toDataFrame()))
+
+```
+
+## Today's Exercise, Which Is Also Homework 9
+
+Context: From last week, you were required to find a set of tweets surrounding the football program of one of the SEC conferences, then follow it up by finding a number of different users who participated. The teams were listed here:
+
+[https://docs.google.com/spreadsheets/d/1IKRXc0hN1C9e5S845LmgY-rlLdCQ1xOQrI3thxKIgVA/edit?usp=sharing]
+
+Your task in the previous homework was to assemble a list of 25 users who might have an opinion about their team's upcoming performance in the next football game. Today we'll continue to manipulate that data using the sentiment analysis tools we just acquired, and inspecting the capabilities of the R package `sentiment` to judge its usefulness
+
+1) Produce a sample of 10 tweets from your initial collection, preferably some that have a large number of words.
+
+2) Examine the words contained within yourself. Do any of them, in your opinion, have a particular emotional or "positive/negative" spin?
+
+3) Run the classifiers on the extraction of text. Use `verbose=TRUE` so that you can see how each word is being scored by the classifier. Are there any definitions of polarity that surprise you given their context?
+
+4) Repeat this procedure with the entirety of your data set so far. Add the classifiers (and only the classifiers, not the raw scores) as columns to your existing data frames. How many tweets are classified "positive" subjectivity? How many are classified as "joy" emotions?
+
+**4a)** Create a new column for the day the tweet was sent. First we can correct this to be in Pacific time:
+
+```{r}
+## your.time.vector <- umich2$created[1:10]
+pb.date <- as.POSIXct(your.time.vector, tz="Europe/London")  
+attributes(pb.date)$tzone <- "America/Los_Angeles"  
+as.character(pb.date)
+```
+
+Then, use the `substr()` function to extract the first 10 characters of the date and time string to obtain only the date (with respect to Pacific time).
+
+5) Use `group_by` and `summarize` to find the fraction of tweets that are positive for each user-day combination -- that is, the sum of the number of positive tweets over all. Do this as well for every emotional group present in the data.
+
+6) Which user-days have the greatest propensity for "joy" -- that is, the greatest fraction of tweets for which "joy" is the measured emotion? Which for "sadness"? Is this consistent from day to day in the data set? Report back the top 10 in each requested category.
